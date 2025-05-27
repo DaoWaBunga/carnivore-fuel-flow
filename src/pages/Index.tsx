@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, TrendingUp, Info, Heart, Utensils, LogOut } from "lucide-react";
+import { Plus, TrendingUp, Info, Heart, Utensils, Users, LogOut } from "lucide-react";
 import { MealLogger } from "@/components/MealLogger";
 import { ProgressDashboard } from "@/components/ProgressDashboard";
 import { HealthTracker } from "@/components/HealthTracker";
@@ -14,6 +14,7 @@ import { MobileHeader } from "@/components/MobileHeader";
 import { MobileTabs } from "@/components/MobileTabs";
 import { ResponsiveLayout } from "@/components/ResponsiveLayout";
 import { ProfileEditor } from "@/components/ProfileEditor";
+import { CommunityFeed } from "@/components/CommunityFeed";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -227,7 +228,7 @@ const Index = () => {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           {/* Desktop Tabs */}
           {!isMobile && (
-            <TabsList className="grid w-full grid-cols-4 mb-8 bg-white/80 backdrop-blur-sm shadow-lg">
+            <TabsList className="grid w-full grid-cols-5 mb-8 bg-white/80 backdrop-blur-sm shadow-lg">
               <TabsTrigger value="dashboard" className="flex items-center gap-2">
                 <TrendingUp className="h-4 w-4" />
                 Dashboard
@@ -239,6 +240,10 @@ const Index = () => {
               <TabsTrigger value="health" className="flex items-center gap-2">
                 <Heart className="h-4 w-4" />
                 Health
+              </TabsTrigger>
+              <TabsTrigger value="community" className="flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                Community
               </TabsTrigger>
               <TabsTrigger value="info" className="flex items-center gap-2">
                 <Info className="h-4 w-4" />
@@ -264,6 +269,10 @@ const Index = () => {
 
           <TabsContent value="health">
             <HealthTracker />
+          </TabsContent>
+
+          <TabsContent value="community">
+            <CommunityFeed />
           </TabsContent>
 
           <TabsContent value="info">

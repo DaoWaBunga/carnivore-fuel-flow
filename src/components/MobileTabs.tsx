@@ -1,6 +1,6 @@
 
 import { Button } from "@/components/ui/button";
-import { TrendingUp, Utensils, Heart, Info } from "lucide-react";
+import { TrendingUp, Utensils, Heart, Info, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface MobileTabsProps {
@@ -12,13 +12,14 @@ const tabs = [
   { id: "dashboard", label: "Dashboard", icon: TrendingUp },
   { id: "meals", label: "Meals", icon: Utensils },
   { id: "health", label: "Health", icon: Heart },
+  { id: "community", label: "Community", icon: Users },
   { id: "info", label: "Info", icon: Info },
 ];
 
 export const MobileTabs = ({ activeTab, onTabChange }: MobileTabsProps) => {
   return (
     <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg z-50 md:hidden">
-      <div className="grid grid-cols-4 gap-1 p-2">
+      <div className="grid grid-cols-5 gap-1 p-2">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           return (

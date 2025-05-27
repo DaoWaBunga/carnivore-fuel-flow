@@ -1,0 +1,141 @@
+
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Heart, Clock, Utensils } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { formatDistanceToNow } from "date-fns";
+
+interface PostCardProps {
+  post: {
+    id: string;
+    user_id: string;
+    content: string;
+    image_url: string | null;
+    post_type: string;
+    meal_data: any;
+    like_count: number;
+    created_at: string;
+    profiles: {
+      display_name: string | null;
+      first_name: string | null;
+      last_name: string | null;
+    } | null;
+    user_liked: boolean;
+  };
+  onLikeToggle: (postId: string, currentlyLiked: boolean) => void;
+}
+
+export const PostCard = ({ post, onLikeToggle }: PostCardProps) => {
+  const getDisplayName = () => {
+    if (post.profiles?.display_name) {
+      return post.profiles.display_name;
+    }
+    if (post.profiles?.first_name || post.profiles?.last_name) {
+      return `${post.profiles.first_name || ''} ${post.profiles.last_name || ''}`.trim();
+    }
+    return 'Anonymous User';
+  };
+
+  const getPostTypeIcon = () => {
+    switch (post.post_type) {
+      case 'meal':
+        return <Utensils className="h-4 w-4 text-orange-600" />;
+      default:
+        return null;
+    }
+  };
+
+  const formatMealData = () => {
+    if (!post.meal_data) return null;
+    
+    return (
+      <div className="mt-3 p-3 bg-orange-50 rounded-lg border-l-4 border-orange-400">
+        <div className="flex items-center gap-2 mb-2">
+          <Utensils className="h-4 w-4 text-orange-600" />
+          <span className="font-medium text-orange-800">Meal Details</span>
+        </div>
+        <div className="text-sm text-orange-700 space-y-1">
+          {post.meal_data.food_name && (
+            <p><strong>Food:</strong> {post.meal_data.food_name}</p>
+          )}
+          {post.meal_data.quantity && post.meal_data.unit && (
+            <p><strong>Quantity:</strong> {post.meal_data.quantity} {post.meal_data.unit}</p>
+          )}
+          {post.meal_data.calories && (
+            <p><strong>Calories:</strong> {post.meal_data.calories}</p>
+          )}
+          {(post.meal_data.protein || post.meal_data.fat || post.meal_data.carbs) && (
+            <div className="flex gap-4 mt-2">
+              {post.meal_data.protein && <span>Protein: {post.meal_data.protein}g</span>}
+              {post.meal_data.fat && <span>Fat: {post.meal_data.fat}g</span>}
+              {post.meal_data.carbs && <span>Carbs: {post.meal_data.carbs}g</span>}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <Card className="bg-white/80 backdrop-blur-sm shadow-lg border-0">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+              <span className="text-red-600 font-semibold text-lg">
+                {getDisplayName().charAt(0).toUpperCase()}
+              </span>
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <p className="font-medium text-gray-900">{getDisplayName()}</p>
+                {getPostTypeIcon()}
+              </div>
+              <div className="flex items-center gap-1 text-sm text-gray-500">
+                <Clock className="h-3 w-3" />
+                {formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}
+              </div>
+            </div>
+          </div>
+        </div>
+      </CardHeader>
+      
+      <CardContent className="pt-0">
+        <p className="text-gray-700 mb-3 whitespace-pre-wrap">{post.content}</p>
+        
+        {post.image_url && (
+          <div className="mb-3">
+            <img
+              src={post.image_url}
+              alt="Post image"
+              className="w-full h-auto max-h-96 object-cover rounded-lg"
+              loading="lazy"
+            />
+          </div>
+        )}
+        
+        {formatMealData()}
+        
+        <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-100">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onLikeToggle(post.id, post.user_liked)}
+            className={cn(
+              "flex items-center gap-2 hover:bg-red-50",
+              post.user_liked ? "text-red-600" : "text-gray-600"
+            )}
+          >
+            <Heart 
+              className={cn(
+                "h-4 w-4",
+                post.user_liked && "fill-current"
+              )} 
+            />
+            <span>{post.like_count}</span>
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
