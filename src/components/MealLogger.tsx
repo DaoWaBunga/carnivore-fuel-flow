@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,7 +6,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Search, Camera } from "lucide-react";
-import { useSupabaseData, MealEntry } from "@/hooks/useSupabaseData";
+import { useSecureSupabaseData, MealEntry } from "@/hooks/useSecureSupabaseData";
+import { useToast } from "@/hooks/use-toast";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const CARNIVORE_FOODS = [
   { name: "Ribeye Steak", protein: 25, fat: 20, carbs: 0, category: "Beef" },
@@ -26,6 +28,9 @@ export const MealLogger = () => {
   const [quantity, setQuantity] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [todaysMeals, setTodaysMeals] = useState<MealEntry[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const isMobile = useIsMobile();
+  const { toast } = useToast();
   
   // Manual food entry states
   const [manualFood, setManualFood] = useState({
@@ -37,7 +42,7 @@ export const MealLogger = () => {
     category: "Custom"
   });
   
-  const { loading, addMeal, getTodaysMeals } = useSupabaseData();
+  const { loading, addMeal, getTodaysMeals } = useSecureSupabaseData();
 
   // Load today's meals on component mount
   useEffect(() => {
@@ -53,6 +58,28 @@ export const MealLogger = () => {
     food.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     food.category.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const handlePhotoCapture = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      console.log("Selected file:", file.name, file.type);
+      toast({
+        title: "Photo Selected! 📸",
+        description: `Selected ${file.name}. Photo analysis feature coming soon!`,
+      });
+      
+      // Reset the input so the same file can be selected again
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
 
   const handleAddMeal = async () => {
     const food = CARNIVORE_FOODS.find(f => f.name === selectedFood);
@@ -124,6 +151,16 @@ export const MealLogger = () => {
 
   return (
     <div className="space-y-6">
+      {/* Hidden file input for photo capture */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        capture={isMobile ? "environment" : undefined}
+        onChange={handleFileChange}
+        className="hidden"
+      />
+
       {/* Add Meal Card */}
       <Card className="bg-white/80 backdrop-blur-sm shadow-lg border-0">
         <CardHeader>
@@ -191,7 +228,12 @@ export const MealLogger = () => {
                   <Plus className="h-4 w-4 mr-2" />
                   Add Meal
                 </Button>
-                <Button variant="outline" className="border-red-200">
+                <Button 
+                  onClick={handlePhotoCapture}
+                  variant="outline" 
+                  className="border-red-200 hover:bg-red-50"
+                  title={isMobile ? "Take Photo" : "Select Photo"}
+                >
                   <Camera className="h-4 w-4" />
                 </Button>
               </div>
@@ -254,14 +296,24 @@ export const MealLogger = () => {
                 </div>
               </div>
 
-              <Button 
-                onClick={handleAddManualMeal} 
-                disabled={loading}
-                className="w-full bg-red-600 hover:bg-red-700"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Custom Meal
-              </Button>
+              <div className="flex gap-2">
+                <Button 
+                  onClick={handleAddManualMeal} 
+                  disabled={loading}
+                  className="bg-red-600 hover:bg-red-700 flex-1"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Custom Meal
+                </Button>
+                <Button 
+                  onClick={handlePhotoCapture}
+                  variant="outline" 
+                  className="border-red-200 hover:bg-red-50"
+                  title={isMobile ? "Take Photo" : "Select Photo"}
+                >
+                  <Camera className="h-4 w-4" />
+                </Button>
+              </div>
             </TabsContent>
           </Tabs>
         </CardContent>
