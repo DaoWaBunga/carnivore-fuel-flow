@@ -96,22 +96,33 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50 via-orange-50 to-amber-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
+    <div 
+      className="min-h-screen flex items-center justify-center p-4 relative"
+      style={{
+        backgroundImage: `url('/lovable-uploads/6b70bb5d-03bb-455f-8625-b980c27f3853.png')`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat'
+      }}
+    >
+      {/* Dark overlay for better text readability */}
+      <div className="absolute inset-0 bg-black bg-opacity-60"></div>
+      
+      <div className="w-full max-w-md relative z-10">
         {/* Header */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center space-x-3 mb-4">
-            <div className="bg-gradient-to-r from-red-600 to-orange-600 p-3 rounded-full">
+            <div className="bg-gradient-to-r from-red-600 to-orange-600 p-3 rounded-full shadow-lg">
               <Utensils className="h-8 w-8 text-white" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-red-800">CarniTrack</h1>
-              <p className="text-red-600 text-sm">Your Carnivore Lifestyle Companion</p>
+              <h1 className="text-3xl font-bold text-white drop-shadow-lg">CarniTrack</h1>
+              <p className="text-orange-200 text-sm drop-shadow">Your Carnivore Lifestyle Companion</p>
             </div>
           </div>
         </div>
 
-        <Card className="bg-white/80 backdrop-blur-sm shadow-lg border-0">
+        <Card className="bg-white/90 backdrop-blur-md shadow-2xl border-0">
           <CardHeader>
             <CardTitle className="text-center text-red-800">
               Get Started
