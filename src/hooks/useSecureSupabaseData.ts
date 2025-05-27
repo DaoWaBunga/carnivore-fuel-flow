@@ -380,15 +380,24 @@ export const useSecureSupabaseData = () => {
         );
       }
 
+      // Ensure food_name is definitely a string after validation
+      const validatedData = validationResult.data;
+      const mealToInsert = {
+        user_id: user!.id,
+        food_name: validatedData.food_name as string, // Type assertion since we validated it exists
+        quantity: validatedData.quantity,
+        unit: validatedData.unit,
+        calories: validatedData.calories,
+        protein: validatedData.protein,
+        fat: validatedData.fat,
+        carbs: validatedData.carbs,
+        meal_time: validatedData.meal_time,
+        date: new Date().toISOString().split('T')[0]
+      };
+
       const { data, error } = await supabase
         .from('meals')
-        .insert([
-          {
-            user_id: user!.id,
-            ...validationResult.data,
-            date: new Date().toISOString().split('T')[0]
-          }
-        ])
+        .insert([mealToInsert])
         .select()
         .single();
 
@@ -402,7 +411,7 @@ export const useSecureSupabaseData = () => {
       
       toast({
         title: "Meal Added! 🥩",
-        description: `${validationResult.data.quantity}g of ${validationResult.data.food_name} logged successfully`
+        description: `${validatedData.quantity}g of ${validatedData.food_name} logged successfully`
       });
       
       return data;
