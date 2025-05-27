@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Search, Camera } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { useSupabaseData, MealEntry } from "@/hooks/useSupabaseData";
 
 const CARNIVORE_FOODS = [
   { name: "Ribeye Steak", protein: 25, fat: 20, carbs: 0, category: "Beef" },
@@ -22,25 +21,11 @@ const CARNIVORE_FOODS = [
   { name: "Beef Tallow", protein: 0, fat: 100, carbs: 0, category: "Fat" },
 ];
 
-interface Meal {
-  id: number;
-  name: string;
-  protein: number;
-  fat: number;
-  carbs: number;
-  quantity: number;
-  totalProtein: string;
-  totalFat: string;
-  totalCarbs: string;
-  time: string;
-  category: string;
-}
-
 export const MealLogger = () => {
   const [selectedFood, setSelectedFood] = useState("");
   const [quantity, setQuantity] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
-  const [todaysMeals, setTodaysMeals] = useState<Meal[]>([]);
+  const [todaysMeals, setTodaysMeals] = useState<MealEntry[]>([]);
   
   // Manual food entry states
   const [manualFood, setManualFood] = useState({
@@ -52,97 +37,87 @@ export const MealLogger = () => {
     category: "Custom"
   });
   
-  const { toast } = useToast();
+  const { loading, addMeal, getTodaysMeals } = useSupabaseData();
+
+  // Load today's meals on component mount
+  useEffect(() => {
+    const loadTodaysMeals = async () => {
+      const meals = await getTodaysMeals();
+      setTodaysMeals(meals);
+    };
+    
+    loadTodaysMeals();
+  }, []);
 
   const filteredFoods = CARNIVORE_FOODS.filter(food =>
     food.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     food.category.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const addMeal = () => {
-    if (!selectedFood || !quantity) {
-      toast({
-        title: "Missing Information",
-        description: "Please select a food and enter quantity",
-        variant: "destructive"
-      });
-      return;
-    }
-
+  const handleAddMeal = async () => {
     const food = CARNIVORE_FOODS.find(f => f.name === selectedFood);
-    if (!food) return;
+    if (!food || !quantity) return;
 
     const quantityNum = parseFloat(quantity);
-    const meal: Meal = {
-      id: Date.now(),
-      ...food,
+    const mealData = {
+      food_name: food.name,
       quantity: quantityNum,
-      totalProtein: (food.protein * quantityNum / 100).toFixed(1),
-      totalFat: (food.fat * quantityNum / 100).toFixed(1),
-      totalCarbs: (food.carbs * quantityNum / 100).toFixed(1),
-      time: new Date().toLocaleTimeString()
+      unit: "g",
+      protein: food.protein * quantityNum / 100,
+      fat: food.fat * quantityNum / 100,
+      carbs: food.carbs * quantityNum / 100,
+      calories: (food.protein * 4 + food.fat * 9 + food.carbs * 4) * quantityNum / 100,
+      meal_time: new Date().toLocaleTimeString(),
+      date: new Date().toISOString().split('T')[0]
     };
 
-    setTodaysMeals([...todaysMeals, meal]);
-    setSelectedFood("");
-    setQuantity("");
-    
-    toast({
-      title: "Meal Added! 🥩",
-      description: `${quantityNum}g of ${food.name} logged successfully`
-    });
+    const result = await addMeal(mealData);
+    if (result) {
+      setTodaysMeals(prev => [result, ...prev]);
+      setSelectedFood("");
+      setQuantity("");
+    }
   };
 
-  const addManualMeal = () => {
-    if (!manualFood.name || !manualFood.quantity) {
-      toast({
-        title: "Missing Information",
-        description: "Please enter food name and quantity",
-        variant: "destructive"
-      });
-      return;
-    }
+  const handleAddManualMeal = async () => {
+    if (!manualFood.name || !manualFood.quantity) return;
 
     const quantityNum = parseFloat(manualFood.quantity);
     const proteinNum = parseFloat(manualFood.protein) || 0;
     const fatNum = parseFloat(manualFood.fat) || 0;
     const carbsNum = parseFloat(manualFood.carbs) || 0;
 
-    const meal: Meal = {
-      id: Date.now(),
-      name: manualFood.name,
-      protein: proteinNum,
-      fat: fatNum,
-      carbs: carbsNum,
+    const mealData = {
+      food_name: manualFood.name,
       quantity: quantityNum,
-      totalProtein: (proteinNum * quantityNum / 100).toFixed(1),
-      totalFat: (fatNum * quantityNum / 100).toFixed(1),
-      totalCarbs: (carbsNum * quantityNum / 100).toFixed(1),
-      time: new Date().toLocaleTimeString(),
-      category: manualFood.category
+      unit: "g",
+      protein: proteinNum * quantityNum / 100,
+      fat: fatNum * quantityNum / 100,
+      carbs: carbsNum * quantityNum / 100,
+      calories: (proteinNum * 4 + fatNum * 9 + carbsNum * 4) * quantityNum / 100,
+      meal_time: new Date().toLocaleTimeString(),
+      date: new Date().toISOString().split('T')[0]
     };
 
-    setTodaysMeals([...todaysMeals, meal]);
-    setManualFood({
-      name: "",
-      protein: "",
-      fat: "",
-      carbs: "",
-      quantity: "",
-      category: "Custom"
-    });
-    
-    toast({
-      title: "Custom Meal Added! 🍖",
-      description: `${quantityNum}g of ${manualFood.name} logged successfully`
-    });
+    const result = await addMeal(mealData);
+    if (result) {
+      setTodaysMeals(prev => [result, ...prev]);
+      setManualFood({
+        name: "",
+        protein: "",
+        fat: "",
+        carbs: "",
+        quantity: "",
+        category: "Custom"
+      });
+    }
   };
 
   const totalMacros = todaysMeals.reduce(
     (acc, meal) => ({
-      protein: acc.protein + parseFloat(meal.totalProtein),
-      fat: acc.fat + parseFloat(meal.totalFat),
-      carbs: acc.carbs + parseFloat(meal.totalCarbs)
+      protein: acc.protein + (meal.protein || 0),
+      fat: acc.fat + (meal.fat || 0),
+      carbs: acc.carbs + (meal.carbs || 0)
     }),
     { protein: 0, fat: 0, carbs: 0 }
   );
@@ -208,7 +183,11 @@ export const MealLogger = () => {
               </div>
 
               <div className="flex gap-2">
-                <Button onClick={addMeal} className="bg-red-600 hover:bg-red-700 flex-1">
+                <Button 
+                  onClick={handleAddMeal} 
+                  disabled={loading}
+                  className="bg-red-600 hover:bg-red-700 flex-1"
+                >
                   <Plus className="h-4 w-4 mr-2" />
                   Add Meal
                 </Button>
@@ -219,6 +198,7 @@ export const MealLogger = () => {
             </TabsContent>
 
             <TabsContent value="manual" className="space-y-4">
+              
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="manualName">Food Name</Label>
@@ -274,7 +254,11 @@ export const MealLogger = () => {
                 </div>
               </div>
 
-              <Button onClick={addManualMeal} className="w-full bg-red-600 hover:bg-red-700">
+              <Button 
+                onClick={handleAddManualMeal} 
+                disabled={loading}
+                className="w-full bg-red-600 hover:bg-red-700"
+              >
                 <Plus className="h-4 w-4 mr-2" />
                 Add Custom Meal
               </Button>
@@ -317,13 +301,13 @@ export const MealLogger = () => {
               {todaysMeals.map((meal) => (
                 <div key={meal.id} className="flex justify-between items-center p-3 bg-red-50 rounded-lg">
                   <div>
-                    <div className="font-medium">{meal.quantity}g {meal.name}</div>
-                    <div className="text-sm text-gray-600">{meal.time}</div>
+                    <div className="font-medium">{meal.quantity}g {meal.food_name}</div>
+                    <div className="text-sm text-gray-600">{meal.meal_time}</div>
                   </div>
                   <div className="text-right text-sm">
-                    <div>P: {meal.totalProtein}g</div>
-                    <div>F: {meal.totalFat}g</div>
-                    {parseFloat(meal.totalCarbs) > 0 && <div>C: {meal.totalCarbs}g</div>}
+                    <div>P: {(meal.protein || 0).toFixed(1)}g</div>
+                    <div>F: {(meal.fat || 0).toFixed(1)}g</div>
+                    {(meal.carbs || 0) > 0 && <div>C: {(meal.carbs || 0).toFixed(1)}g</div>}
                   </div>
                 </div>
               ))}

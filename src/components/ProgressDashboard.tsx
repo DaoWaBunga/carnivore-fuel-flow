@@ -5,96 +5,82 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { TrendingUp, Weight, Target, Plus, Activity, Heart, Flame } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-
-interface WeightEntry {
-  id: number;
-  weight: number;
-  date: string;
-}
-
-interface Goal {
-  id: number;
-  type: string;
-  target: number;
-  current: number;
-}
+import { useSupabaseData, WeightEntry, Goal, HealthMetric, ActivityData } from "@/hooks/useSupabaseData";
 
 export const ProgressDashboard = () => {
-  const [weightEntries, setWeightEntries] = useState<WeightEntry[]>([]);
   const [newWeight, setNewWeight] = useState("");
-  const [goals, setGoals] = useState<Goal[]>([]);
   const [newGoal, setNewGoal] = useState({ type: "", target: "" });
-  const { toast } = useToast();
+  const [weightEntries, setWeightEntries] = useState<WeightEntry[]>([]);
+  const [goals, setGoals] = useState<Goal[]>([]);
+  const [todaysHealth, setTodaysHealth] = useState<HealthMetric | null>(null);
+  const [todaysActivity, setTodaysActivity] = useState<ActivityData | null>(null);
 
-  // Mock data for demonstration - in a real app this would come from shared state
+  const {
+    loading,
+    addWeightEntry,
+    getWeightEntries,
+    addGoal,
+    getGoals,
+    getTodaysHealthMetrics,
+    getTodaysActivity
+  } = useSupabaseData();
+
+  // Load data on component mount
+  useEffect(() => {
+    const loadData = async () => {
+      const [weights, goalsData, healthData, activityData] = await Promise.all([
+        getWeightEntries(),
+        getGoals(),
+        getTodaysHealthMetrics(),
+        getTodaysActivity()
+      ]);
+      
+      setWeightEntries(weights);
+      setGoals(goalsData);
+      setTodaysHealth(healthData);
+      setTodaysActivity(activityData);
+    };
+
+    loadData();
+  }, []);
+
+  const handleAddWeight = async () => {
+    if (!newWeight) return;
+    
+    const result = await addWeightEntry(parseFloat(newWeight));
+    if (result) {
+      setWeightEntries(prev => [result, ...prev]);
+      setNewWeight("");
+    }
+  };
+
+  const handleAddGoal = async () => {
+    if (!newGoal.type || !newGoal.target) return;
+    
+    const result = await addGoal(newGoal.type, parseFloat(newGoal.target));
+    if (result) {
+      setGoals(prev => [result, ...prev]);
+      setNewGoal({ type: "", target: "" });
+    }
+  };
+
+  const currentWeight = weightEntries.length > 0 ? weightEntries[0].weight : 0;
+  const weightChange = weightEntries.length > 1 ? 
+    weightEntries[0].weight - weightEntries[1].weight : 0;
+
+  // Default values if no data exists
   const mockTodaysActivity = {
-    steps: 8500,
-    activeTime: 45,
-    calories: 320
+    steps: todaysActivity?.steps || 0,
+    activeTime: todaysActivity?.active_time || 0,
+    calories: todaysActivity?.calories_burned || 0
   };
 
   const mockHealthMetrics = {
-    mood: 8,
-    energy: 7,
-    sleep: 6,
-    digestion: 9
+    mood: todaysHealth?.mood || 0,
+    energy: todaysHealth?.energy || 0,
+    sleep: todaysHealth?.sleep || 0,
+    digestion: todaysHealth?.digestion || 0
   };
-
-  const addWeightEntry = () => {
-    if (!newWeight) {
-      toast({
-        title: "Weight Required",
-        description: "Please enter your weight",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    const entry: WeightEntry = {
-      id: Date.now(),
-      weight: parseFloat(newWeight),
-      date: new Date().toLocaleDateString()
-    };
-
-    setWeightEntries([...weightEntries, entry]);
-    setNewWeight("");
-    
-    toast({
-      title: "Weight Logged! ⚖️",
-      description: `${newWeight} lbs recorded for today`
-    });
-  };
-
-  const addGoal = () => {
-    if (!newGoal.type || !newGoal.target) {
-      toast({
-        title: "Goal Information Required",
-        description: "Please enter goal type and target",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    const goal: Goal = {
-      id: Date.now(),
-      type: newGoal.type,
-      target: parseFloat(newGoal.target),
-      current: 0
-    };
-
-    setGoals([...goals, goal]);
-    setNewGoal({ type: "", target: "" });
-    
-    toast({
-      title: "Goal Added! 🎯",
-      description: `New ${newGoal.type} goal set`
-    });
-  };
-
-  const currentWeight = weightEntries.length > 0 ? weightEntries[weightEntries.length - 1].weight : 0;
-  const weightChange = weightEntries.length > 1 ? 
-    weightEntries[weightEntries.length - 1].weight - weightEntries[weightEntries.length - 2].weight : 0;
 
   return (
     <div className="space-y-6">
@@ -120,12 +106,12 @@ export const ProgressDashboard = () => {
             </div>
             <div>
               <Heart className="h-6 w-6 mx-auto mb-2" />
-              <div className="text-2xl font-bold">{mockHealthMetrics.mood}/10</div>
+              <div className="text-2xl font-bold">{mockHealthMetrics.mood || "---"}/10</div>
               <div className="text-red-100 text-sm">Mood</div>
             </div>
             <div>
               <Activity className="h-6 w-6 mx-auto mb-2" />
-              <div className="text-2xl font-bold">{mockHealthMetrics.energy}/10</div>
+              <div className="text-2xl font-bold">{mockHealthMetrics.energy || "---"}/10</div>
               <div className="text-red-100 text-sm">Energy</div>
             </div>
           </div>
@@ -166,7 +152,11 @@ export const ProgressDashboard = () => {
               onChange={(e) => setNewWeight(e.target.value)}
               className="flex-1"
             />
-            <Button onClick={addWeightEntry} className="bg-red-600 hover:bg-red-700">
+            <Button 
+              onClick={handleAddWeight} 
+              disabled={loading}
+              className="bg-red-600 hover:bg-red-700"
+            >
               <Plus className="h-4 w-4 mr-2" />
               Log Weight
             </Button>
@@ -176,9 +166,9 @@ export const ProgressDashboard = () => {
             <div className="space-y-2">
               <h4 className="font-medium text-gray-700">Recent Entries:</h4>
               <div className="max-h-32 overflow-y-auto space-y-1">
-                {weightEntries.slice(-5).reverse().map((entry) => (
+                {weightEntries.slice(0, 5).map((entry) => (
                   <div key={entry.id} className="flex justify-between text-sm bg-gray-50 p-2 rounded">
-                    <span>{entry.date}</span>
+                    <span>{new Date(entry.date).toLocaleDateString()}</span>
                     <span className="font-medium">{entry.weight} lbs</span>
                   </div>
                 ))}
@@ -248,7 +238,11 @@ export const ProgressDashboard = () => {
             </div>
           </div>
           
-          <Button onClick={addGoal} className="w-full bg-red-600 hover:bg-red-700">
+          <Button 
+            onClick={handleAddGoal} 
+            disabled={loading}
+            className="w-full bg-red-600 hover:bg-red-700"
+          >
             <Plus className="h-4 w-4 mr-2" />
             Add Goal
           </Button>
@@ -261,13 +255,13 @@ export const ProgressDashboard = () => {
                   <div className="flex justify-between items-center">
                     <span className="font-medium">{goal.type}</span>
                     <span className="text-red-700 font-bold">
-                      {goal.current} / {goal.target}
+                      {goal.current || 0} / {goal.target}
                     </span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
                     <div 
                       className="bg-red-600 h-2 rounded-full" 
-                      style={{ width: `${Math.min((goal.current / goal.target) * 100, 100)}%` }}
+                      style={{ width: `${Math.min(((goal.current || 0) / goal.target) * 100, 100)}%` }}
                     ></div>
                   </div>
                 </div>
@@ -288,19 +282,19 @@ export const ProgressDashboard = () => {
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="text-center p-3 bg-green-50 rounded-lg">
-              <div className="text-xl font-bold text-green-700">{mockHealthMetrics.mood}/10</div>
+              <div className="text-xl font-bold text-green-700">{mockHealthMetrics.mood || "---"}/10</div>
               <div className="text-sm text-gray-600">Mood</div>
             </div>
             <div className="text-center p-3 bg-orange-50 rounded-lg">
-              <div className="text-xl font-bold text-orange-700">{mockHealthMetrics.energy}/10</div>
+              <div className="text-xl font-bold text-orange-700">{mockHealthMetrics.energy || "---"}/10</div>
               <div className="text-sm text-gray-600">Energy</div>
             </div>
             <div className="text-center p-3 bg-blue-50 rounded-lg">
-              <div className="text-xl font-bold text-blue-700">{mockHealthMetrics.sleep}/10</div>
+              <div className="text-xl font-bold text-blue-700">{mockHealthMetrics.sleep || "---"}/10</div>
               <div className="text-sm text-gray-600">Sleep</div>
             </div>
             <div className="text-center p-3 bg-red-50 rounded-lg">
-              <div className="text-xl font-bold text-red-700">{mockHealthMetrics.digestion}/10</div>
+              <div className="text-xl font-bold text-red-700">{mockHealthMetrics.digestion || "---"}/10</div>
               <div className="text-sm text-gray-600">Digestion</div>
             </div>
           </div>
