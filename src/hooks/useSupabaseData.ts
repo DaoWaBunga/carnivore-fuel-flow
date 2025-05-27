@@ -53,6 +53,42 @@ export interface MealEntry {
   date: string;
 }
 
+export interface WaterEntry {
+  id: string;
+  user_id: string;
+  amount: number;
+  date: string;
+}
+
+export interface NutritionEntry {
+  id: string;
+  user_id: string;
+  name: string;
+  amount: number;
+  unit: string;
+  date: string;
+}
+
+export interface BodyMetric {
+  id: string;
+  user_id: string;
+  weight?: number;
+  body_fat?: number;
+  waist?: number;
+  date: string;
+}
+
+export interface HealthNote {
+  id: string;
+  user_id: string;
+  notes: string;
+  mood?: number;
+  energy?: number;
+  sleep?: number;
+  digestion?: number;
+  date: string;
+}
+
 export const useSupabaseData = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -115,6 +151,128 @@ export const useSupabaseData = () => {
     }
   };
 
+  // Water intake
+  const addWaterEntry = async (amount: number) => {
+    if (!user) return null;
+    
+    setLoading(true);
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      
+      // Check if there's already an entry for today
+      const { data: existing } = await supabase
+        .from('water_intake')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('date', today)
+        .single();
+
+      if (existing) {
+        // Update existing entry
+        const { data, error } = await supabase
+          .from('water_intake')
+          .update({ amount: existing.amount + amount })
+          .eq('id', existing.id)
+          .select()
+          .single();
+
+        if (error) throw error;
+        return data;
+      } else {
+        // Create new entry
+        const { data, error } = await supabase
+          .from('water_intake')
+          .insert([
+            {
+              user_id: user.id,
+              amount: amount,
+              date: today
+            }
+          ])
+          .select()
+          .single();
+
+        if (error) throw error;
+        return data;
+      }
+    } catch (error) {
+      console.error('Error adding water entry:', error);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getTodaysWaterIntake = async () => {
+    if (!user) return 0;
+    
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const { data, error } = await supabase
+        .from('water_intake')
+        .select('amount')
+        .eq('user_id', user.id)
+        .eq('date', today)
+        .single();
+
+      if (error) return 0;
+      return data?.amount || 0;
+    } catch (error) {
+      console.error('Error fetching water intake:', error);
+      return 0;
+    }
+  };
+
+  // Nutrition entries
+  const addNutritionEntry = async (name: string, amount: number, unit: string) => {
+    if (!user) return null;
+    
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('nutrition_entries')
+        .insert([
+          {
+            user_id: user.id,
+            name,
+            amount,
+            unit,
+            date: new Date().toISOString().split('T')[0]
+          }
+        ])
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error adding nutrition entry:', error);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getTodaysNutritionEntries = async () => {
+    if (!user) return [];
+    
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const { data, error } = await supabase
+        .from('nutrition_entries')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('date', today)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching nutrition entries:', error);
+      return [];
+    }
+  };
+
   // Health metrics
   const addHealthMetric = async (metrics: Partial<HealthMetric>) => {
     if (!user) return null;
@@ -171,6 +329,98 @@ export const useSupabaseData = () => {
     } catch (error) {
       console.error('Error fetching health metrics:', error);
       return null;
+    }
+  };
+
+  // Body metrics
+  const addBodyMetrics = async (metrics: Partial<BodyMetric>) => {
+    if (!user) return null;
+    
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('body_metrics')
+        .insert([
+          {
+            user_id: user.id,
+            date: new Date().toISOString().split('T')[0],
+            ...metrics
+          }
+        ])
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error adding body metrics:', error);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Health notes
+  const addHealthNote = async (note: Omit<HealthNote, 'id' | 'user_id' | 'date'>) => {
+    if (!user) return null;
+    
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('health_notes')
+        .insert([
+          {
+            user_id: user.id,
+            date: new Date().toISOString().split('T')[0],
+            ...note
+          }
+        ])
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error adding health note:', error);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getHealthNotes = async () => {
+    if (!user) return [];
+    
+    try {
+      const { data, error } = await supabase
+        .from('health_notes')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('date', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching health notes:', error);
+      return [];
+    }
+  };
+
+  const deleteHealthNote = async (id: string) => {
+    if (!user) return false;
+    
+    try {
+      const { error } = await supabase
+        .from('health_notes')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error('Error deleting health note:', error);
+      return false;
     }
   };
 
@@ -344,8 +594,16 @@ export const useSupabaseData = () => {
     loading,
     addWeightEntry,
     getWeightEntries,
+    addWaterEntry,
+    getTodaysWaterIntake,
+    addNutritionEntry,
+    getTodaysNutritionEntries,
     addHealthMetric,
     getTodaysHealthMetrics,
+    addBodyMetrics,
+    addHealthNote,
+    getHealthNotes,
+    deleteHealthNote,
     addGoal,
     getGoals,
     addMeal,

@@ -7,23 +7,39 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Beef, Plus, Droplets } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-
-interface NutrientEntry {
-  id: number;
-  name: string;
-  amount: number;
-  unit: string;
-  date: string;
-}
+import { useSupabaseData, NutritionEntry } from "@/hooks/useSupabaseData";
 
 export const NutritionSummary = () => {
-  const [nutrients, setNutrients] = useState<NutrientEntry[]>([]);
+  const [nutrients, setNutrients] = useState<NutritionEntry[]>([]);
   const [newNutrient, setNewNutrient] = useState({ name: "", amount: "", unit: "g" });
   const [waterIntake, setWaterIntake] = useState(0);
   const [newWater, setNewWater] = useState("");
   const { toast } = useToast();
+  
+  const {
+    loading,
+    addWaterEntry,
+    getTodaysWaterIntake,
+    addNutritionEntry,
+    getTodaysNutritionEntries
+  } = useSupabaseData();
 
-  const addNutrientEntry = () => {
+  // Load data on component mount
+  useEffect(() => {
+    const loadData = async () => {
+      const [waterData, nutritionData] = await Promise.all([
+        getTodaysWaterIntake(),
+        getTodaysNutritionEntries()
+      ]);
+      
+      setWaterIntake(waterData);
+      setNutrients(nutritionData);
+    };
+
+    loadData();
+  }, []);
+
+  const addNutrientEntry = async () => {
     if (!newNutrient.name || !newNutrient.amount) {
       toast({
         title: "Nutrient Information Required",
@@ -33,24 +49,24 @@ export const NutritionSummary = () => {
       return;
     }
 
-    const entry: NutrientEntry = {
-      id: Date.now(),
-      name: newNutrient.name,
-      amount: parseFloat(newNutrient.amount),
-      unit: newNutrient.unit,
-      date: new Date().toLocaleDateString()
-    };
+    const result = await addNutritionEntry(
+      newNutrient.name,
+      parseFloat(newNutrient.amount),
+      newNutrient.unit
+    );
 
-    setNutrients([...nutrients, entry]);
-    setNewNutrient({ name: "", amount: "", unit: "g" });
-    
-    toast({
-      title: "Nutrient Logged! 💊",
-      description: `${newNutrient.amount}${newNutrient.unit} of ${newNutrient.name} added`
-    });
+    if (result) {
+      setNutrients(prev => [result, ...prev]);
+      setNewNutrient({ name: "", amount: "", unit: "g" });
+      
+      toast({
+        title: "Nutrient Logged! 💊",
+        description: `${newNutrient.amount}${newNutrient.unit} of ${newNutrient.name} added`
+      });
+    }
   };
 
-  const addWater = () => {
+  const addWater = async () => {
     if (!newWater) {
       toast({
         title: "Water Amount Required",
@@ -60,13 +76,18 @@ export const NutritionSummary = () => {
       return;
     }
 
-    setWaterIntake(waterIntake + parseFloat(newWater));
-    setNewWater("");
+    const amount = parseFloat(newWater);
+    const result = await addWaterEntry(amount);
     
-    toast({
-      title: "Water Logged! 💧",
-      description: `${newWater} oz added to today's intake`
-    });
+    if (result) {
+      setWaterIntake(result.amount);
+      setNewWater("");
+      
+      toast({
+        title: "Water Logged! 💧",
+        description: `${newWater} oz added to today's intake`
+      });
+    }
   };
 
   // Key carnivore nutrients with recommended daily values
@@ -80,9 +101,8 @@ export const NutritionSummary = () => {
   ];
 
   const getTodaysNutrients = (nutrientName: string) => {
-    const today = new Date().toLocaleDateString();
     return nutrients
-      .filter(n => n.name.toLowerCase() === nutrientName.toLowerCase() && n.date === today)
+      .filter(n => n.name.toLowerCase() === nutrientName.toLowerCase())
       .reduce((sum, n) => sum + n.amount, 0);
   };
 
@@ -158,7 +178,11 @@ export const NutritionSummary = () => {
             </div>
           </div>
           
-          <Button onClick={addNutrientEntry} className="w-full bg-red-600 hover:bg-red-700">
+          <Button 
+            onClick={addNutrientEntry} 
+            disabled={loading}
+            className="w-full bg-red-600 hover:bg-red-700"
+          >
             <Plus className="h-4 w-4 mr-2" />
             Log Nutrient
           </Button>
@@ -188,7 +212,11 @@ export const NutritionSummary = () => {
               onChange={(e) => setNewWater(e.target.value)}
               className="flex-1"
             />
-            <Button onClick={addWater} className="bg-blue-600 hover:bg-blue-700">
+            <Button 
+              onClick={addWater} 
+              disabled={loading}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
               <Plus className="h-4 w-4 mr-2" />
               Add Water
             </Button>
@@ -206,13 +234,13 @@ export const NutritionSummary = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-2 max-h-40 overflow-y-auto">
-              {nutrients.slice(-10).reverse().map((nutrient) => (
+              {nutrients.slice(0, 10).map((nutrient) => (
                 <div key={nutrient.id} className="flex justify-between items-center p-2 bg-gray-50 rounded">
                   <span className="font-medium">{nutrient.name}</span>
                   <span className="text-gray-600">
                     {nutrient.amount} {nutrient.unit}
                   </span>
-                  <span className="text-xs text-gray-400">{nutrient.date}</span>
+                  <span className="text-xs text-gray-400">{new Date(nutrient.date).toLocaleDateString()}</span>
                 </div>
               ))}
             </div>

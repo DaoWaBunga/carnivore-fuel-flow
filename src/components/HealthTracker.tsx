@@ -1,39 +1,14 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Textarea } from "@/components/ui/textarea";
-import { Heart, Activity, Moon, Smile, Plus, FootprintsIcon, Clock, Flame, Trash2, Edit3 } from "lucide-react";
+import { Heart, Activity, Moon, Smile, Plus, FootprintsIcon, Clock, Flame, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-
-interface StepEntry {
-  id: number;
-  steps: number;
-  activeTime: number; // minutes
-  activityCalories: number;
-  date: string;
-}
-
-interface HealthNote {
-  id: number;
-  notes: string;
-  date: string;
-  mood: number;
-  energy: number;
-  sleep: number;
-  digestion: number;
-}
-
-interface BodyMetric {
-  id: number;
-  weight?: number;
-  bodyFat?: number;
-  waist?: number;
-  date: string;
-}
+import { useSupabaseData, HealthNote, ActivityData, HealthMetric } from "@/hooks/useSupabaseData";
 
 export const HealthTracker = () => {
   const [mood, setMood] = useState([7]);
@@ -47,42 +22,86 @@ export const HealthTracker = () => {
   const [steps, setSteps] = useState("");
   const [activeTime, setActiveTime] = useState("");
   const [activityCalories, setActivityCalories] = useState("");
-  const [stepEntries, setStepEntries] = useState<StepEntry[]>([]);
   const [healthNotes, setHealthNotes] = useState<HealthNote[]>([]);
-  const [bodyMetrics, setBodyMetrics] = useState<BodyMetric[]>([]);
-  const [editingNote, setEditingNote] = useState<number | null>(null);
+  const [todaysActivity, setTodaysActivity] = useState<ActivityData | null>(null);
+  const [todaysHealthMetrics, setTodaysHealthMetrics] = useState<HealthMetric | null>(null);
   const { toast } = useToast();
 
-  const logHealthMetrics = () => {
+  const {
+    loading,
+    addHealthMetric,
+    getTodaysHealthMetrics,
+    addBodyMetrics,
+    addHealthNote,
+    getHealthNotes,
+    deleteHealthNote,
+    updateTodaysActivity,
+    getTodaysActivity
+  } = useSupabaseData();
+
+  // Load data on component mount
+  useEffect(() => {
+    const loadData = async () => {
+      const [healthMetrics, healthNotesData, activityData] = await Promise.all([
+        getTodaysHealthMetrics(),
+        getHealthNotes(),
+        getTodaysActivity()
+      ]);
+      
+      if (healthMetrics) {
+        setTodaysHealthMetrics(healthMetrics);
+        setMood([healthMetrics.mood || 7]);
+        setEnergy([healthMetrics.energy || 8]);
+        setSleep([healthMetrics.sleep || 7]);
+        setDigestion([healthMetrics.digestion || 8]);
+      }
+      
+      setHealthNotes(healthNotesData);
+      setTodaysActivity(activityData);
+    };
+
+    loadData();
+  }, []);
+
+  const logHealthMetrics = async () => {
     const metrics = [];
-    let bodyMetric: BodyMetric | null = null;
     
     if (weight || bodyFat || waist) {
-      bodyMetric = {
-        id: Date.now(),
-        weight: weight ? parseFloat(weight) : undefined,
-        bodyFat: bodyFat ? parseFloat(bodyFat) : undefined,
-        waist: waist ? parseFloat(waist) : undefined,
-        date: new Date().toLocaleDateString()
-      };
-      setBodyMetrics([...bodyMetrics, bodyMetric]);
+      const bodyMetricsData: any = {};
+      if (weight) bodyMetricsData.weight = parseFloat(weight);
+      if (bodyFat) bodyMetricsData.body_fat = parseFloat(bodyFat);
+      if (waist) bodyMetricsData.waist = parseFloat(waist);
+      
+      await addBodyMetrics(bodyMetricsData);
       
       if (weight) metrics.push(`Weight: ${weight} lbs`);
       if (bodyFat) metrics.push(`Body Fat: ${bodyFat}%`);
       if (waist) metrics.push(`Waist: ${waist} inches`);
     }
 
+    // Update health metrics
+    const healthMetricsData = {
+      mood: mood[0],
+      energy: energy[0],
+      sleep: sleep[0],
+      digestion: digestion[0]
+    };
+    
+    await addHealthMetric(healthMetricsData);
+
     if (notes) {
-      const healthNote: HealthNote = {
-        id: Date.now(),
+      const healthNote = {
         notes,
-        date: new Date().toLocaleDateString(),
         mood: mood[0],
         energy: energy[0],
         sleep: sleep[0],
         digestion: digestion[0]
       };
-      setHealthNotes([...healthNotes, healthNote]);
+      
+      const result = await addHealthNote(healthNote);
+      if (result) {
+        setHealthNotes(prev => [result, ...prev]);
+      }
       metrics.push("Health notes");
     }
     
@@ -98,7 +117,7 @@ export const HealthTracker = () => {
     setNotes("");
   };
 
-  const addActivity = () => {
+  const addActivity = async () => {
     const missingFields = [];
     if (!steps) missingFields.push("steps");
     if (!activeTime) missingFields.push("active time");
@@ -113,48 +132,43 @@ export const HealthTracker = () => {
       return;
     }
 
-    const entry: StepEntry = {
-      id: Date.now(),
+    const activityData = {
       steps: parseInt(steps),
-      activeTime: parseInt(activeTime),
-      activityCalories: parseInt(activityCalories),
-      date: new Date().toLocaleDateString()
+      active_time: parseInt(activeTime),
+      calories_burned: parseInt(activityCalories)
     };
 
-    setStepEntries([...stepEntries, entry]);
-    setSteps("");
-    setActiveTime("");
-    setActivityCalories("");
+    const result = await updateTodaysActivity(activityData);
     
-    toast({
-      title: "Activity Logged! 🏃‍♂️",
-      description: `${steps} steps, ${activeTime} min active, ${activityCalories} cal burned`
-    });
+    if (result) {
+      setTodaysActivity(result);
+      setSteps("");
+      setActiveTime("");
+      setActivityCalories("");
+      
+      toast({
+        title: "Activity Logged! 🏃‍♂️",
+        description: `${steps} steps, ${activeTime} min active, ${activityCalories} cal burned`
+      });
+    }
   };
 
-  const deleteNote = (id: number) => {
-    setHealthNotes(healthNotes.filter(note => note.id !== id));
-    toast({
-      title: "Note Deleted",
-      description: "Health note has been removed"
-    });
+  const deleteNote = async (id: string) => {
+    const success = await deleteHealthNote(id);
+    if (success) {
+      setHealthNotes(healthNotes.filter(note => note.id !== id));
+      toast({
+        title: "Note Deleted",
+        description: "Health note has been removed"
+      });
+    }
   };
 
-  const deleteActivity = (id: number) => {
-    setStepEntries(stepEntries.filter(entry => entry.id !== id));
-    toast({
-      title: "Activity Deleted",
-      description: "Activity entry has been removed"
-    });
+  const displayActivity = {
+    steps: todaysActivity?.steps || 0,
+    activeTime: todaysActivity?.active_time || 0,
+    calories: todaysActivity?.calories_burned || 0
   };
-
-  const todaysActivity = stepEntries
-    .filter(entry => entry.date === new Date().toLocaleDateString())
-    .reduce((total, entry) => ({
-      steps: total.steps + entry.steps,
-      activeTime: total.activeTime + entry.activeTime,
-      calories: total.calories + entry.activityCalories
-    }), { steps: 0, activeTime: 0, calories: 0 });
 
   const healthMetrics = [
     {
@@ -239,17 +253,17 @@ export const HealthTracker = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="text-center p-4 bg-green-50 rounded-lg">
               <FootprintsIcon className="h-6 w-6 mx-auto mb-2 text-green-600" />
-              <div className="text-2xl font-bold text-green-700">{todaysActivity.steps.toLocaleString()}</div>
+              <div className="text-2xl font-bold text-green-700">{displayActivity.steps.toLocaleString()}</div>
               <div className="text-sm text-gray-600">steps</div>
             </div>
             <div className="text-center p-4 bg-blue-50 rounded-lg">
               <Clock className="h-6 w-6 mx-auto mb-2 text-blue-600" />
-              <div className="text-2xl font-bold text-blue-700">{todaysActivity.activeTime}</div>
+              <div className="text-2xl font-bold text-blue-700">{displayActivity.activeTime}</div>
               <div className="text-sm text-gray-600">active minutes</div>
             </div>
             <div className="text-center p-4 bg-orange-50 rounded-lg">
               <Flame className="h-6 w-6 mx-auto mb-2 text-orange-600" />
-              <div className="text-2xl font-bold text-orange-700">{todaysActivity.calories}</div>
+              <div className="text-2xl font-bold text-orange-700">{displayActivity.calories}</div>
               <div className="text-sm text-gray-600">calories burned</div>
             </div>
           </div>
@@ -287,36 +301,14 @@ export const HealthTracker = () => {
             </div>
           </div>
           
-          <Button onClick={addActivity} className="w-full bg-green-600 hover:bg-green-700">
+          <Button 
+            onClick={addActivity} 
+            disabled={loading}
+            className="w-full bg-green-600 hover:bg-green-700"
+          >
             <Plus className="h-4 w-4 mr-2" />
             Log Activity
           </Button>
-
-          {stepEntries.length > 0 && (
-            <div className="space-y-2">
-              <h4 className="font-medium text-gray-700">Recent Activity Entries:</h4>
-              <div className="max-h-40 overflow-y-auto space-y-2">
-                {stepEntries.slice(-5).reverse().map((entry) => (
-                  <div key={entry.id} className="flex justify-between items-center text-sm bg-gray-50 p-3 rounded">
-                    <div className="flex-1">
-                      <div className="font-medium">{entry.date}</div>
-                      <div className="text-gray-600">
-                        {entry.steps.toLocaleString()} steps • {entry.activeTime}min • {entry.activityCalories} cal
-                      </div>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => deleteActivity(entry.id)}
-                      className="text-red-600 hover:text-red-800"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </CardContent>
       </Card>
 
@@ -380,6 +372,7 @@ export const HealthTracker = () => {
           
           <Button 
             onClick={logHealthMetrics} 
+            disabled={loading}
             className="w-full bg-red-600 hover:bg-red-700"
           >
             <Plus className="h-4 w-4 mr-2" />
@@ -390,10 +383,10 @@ export const HealthTracker = () => {
             <div className="space-y-3">
               <h4 className="font-medium text-gray-700">Previous Health Notes:</h4>
               <div className="max-h-60 overflow-y-auto space-y-3">
-                {healthNotes.slice().reverse().map((note) => (
+                {healthNotes.map((note) => (
                   <div key={note.id} className="bg-gray-50 p-4 rounded-lg">
                     <div className="flex justify-between items-start mb-2">
-                      <div className="font-medium text-gray-700">{note.date}</div>
+                      <div className="font-medium text-gray-700">{new Date(note.date).toLocaleDateString()}</div>
                       <Button
                         variant="ghost"
                         size="sm"
