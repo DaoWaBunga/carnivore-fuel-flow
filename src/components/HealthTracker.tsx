@@ -6,12 +6,32 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Textarea } from "@/components/ui/textarea";
-import { Heart, Activity, Moon, Smile, Plus, FootprintsIcon } from "lucide-react";
+import { Heart, Activity, Moon, Smile, Plus, FootprintsIcon, Clock, Flame, Trash2, Edit3 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface StepEntry {
   id: number;
   steps: number;
+  activeTime: number; // minutes
+  activityCalories: number;
+  date: string;
+}
+
+interface HealthNote {
+  id: number;
+  notes: string;
+  date: string;
+  mood: number;
+  energy: number;
+  sleep: number;
+  digestion: number;
+}
+
+interface BodyMetric {
+  id: number;
+  weight?: number;
+  bodyFat?: number;
+  waist?: number;
   date: string;
 }
 
@@ -25,14 +45,46 @@ export const HealthTracker = () => {
   const [waist, setWaist] = useState("");
   const [notes, setNotes] = useState("");
   const [steps, setSteps] = useState("");
+  const [activeTime, setActiveTime] = useState("");
+  const [activityCalories, setActivityCalories] = useState("");
   const [stepEntries, setStepEntries] = useState<StepEntry[]>([]);
+  const [healthNotes, setHealthNotes] = useState<HealthNote[]>([]);
+  const [bodyMetrics, setBodyMetrics] = useState<BodyMetric[]>([]);
+  const [editingNote, setEditingNote] = useState<number | null>(null);
   const { toast } = useToast();
 
   const logHealthMetrics = () => {
     const metrics = [];
-    if (weight) metrics.push(`Weight: ${weight} lbs`);
-    if (bodyFat) metrics.push(`Body Fat: ${bodyFat}%`);
-    if (waist) metrics.push(`Waist: ${waist} inches`);
+    let bodyMetric: BodyMetric | null = null;
+    
+    if (weight || bodyFat || waist) {
+      bodyMetric = {
+        id: Date.now(),
+        weight: weight ? parseFloat(weight) : undefined,
+        bodyFat: bodyFat ? parseFloat(bodyFat) : undefined,
+        waist: waist ? parseFloat(waist) : undefined,
+        date: new Date().toLocaleDateString()
+      };
+      setBodyMetrics([...bodyMetrics, bodyMetric]);
+      
+      if (weight) metrics.push(`Weight: ${weight} lbs`);
+      if (bodyFat) metrics.push(`Body Fat: ${bodyFat}%`);
+      if (waist) metrics.push(`Waist: ${waist} inches`);
+    }
+
+    if (notes) {
+      const healthNote: HealthNote = {
+        id: Date.now(),
+        notes,
+        date: new Date().toLocaleDateString(),
+        mood: mood[0],
+        energy: energy[0],
+        sleep: sleep[0],
+        digestion: digestion[0]
+      };
+      setHealthNotes([...healthNotes, healthNote]);
+      metrics.push("Health notes");
+    }
     
     toast({
       title: "Health Metrics Logged! 📊",
@@ -46,11 +98,16 @@ export const HealthTracker = () => {
     setNotes("");
   };
 
-  const addSteps = () => {
-    if (!steps) {
+  const addActivity = () => {
+    const missingFields = [];
+    if (!steps) missingFields.push("steps");
+    if (!activeTime) missingFields.push("active time");
+    if (!activityCalories) missingFields.push("activity calories");
+
+    if (missingFields.length > 0) {
       toast({
-        title: "Steps Required",
-        description: "Please enter your step count",
+        title: "Missing Information",
+        description: `Please enter: ${missingFields.join(", ")}`,
         variant: "destructive"
       });
       return;
@@ -59,21 +116,45 @@ export const HealthTracker = () => {
     const entry: StepEntry = {
       id: Date.now(),
       steps: parseInt(steps),
+      activeTime: parseInt(activeTime),
+      activityCalories: parseInt(activityCalories),
       date: new Date().toLocaleDateString()
     };
 
     setStepEntries([...stepEntries, entry]);
     setSteps("");
+    setActiveTime("");
+    setActivityCalories("");
     
     toast({
-      title: "Steps Logged! 👟",
-      description: `${steps} steps added for today`
+      title: "Activity Logged! 🏃‍♂️",
+      description: `${steps} steps, ${activeTime} min active, ${activityCalories} cal burned`
     });
   };
 
-  const todaysSteps = stepEntries
+  const deleteNote = (id: number) => {
+    setHealthNotes(healthNotes.filter(note => note.id !== id));
+    toast({
+      title: "Note Deleted",
+      description: "Health note has been removed"
+    });
+  };
+
+  const deleteActivity = (id: number) => {
+    setStepEntries(stepEntries.filter(entry => entry.id !== id));
+    toast({
+      title: "Activity Deleted",
+      description: "Activity entry has been removed"
+    });
+  };
+
+  const todaysActivity = stepEntries
     .filter(entry => entry.date === new Date().toLocaleDateString())
-    .reduce((total, entry) => total + entry.steps, 0);
+    .reduce((total, entry) => ({
+      steps: total.steps + entry.steps,
+      activeTime: total.activeTime + entry.activeTime,
+      calories: total.calories + entry.activityCalories
+    }), { steps: 0, activeTime: 0, calories: 0 });
 
   const healthMetrics = [
     {
@@ -146,43 +227,91 @@ export const HealthTracker = () => {
         ))}
       </div>
 
-      {/* Steps Tracking */}
+      {/* Activity Tracking */}
       <Card className="bg-white/80 backdrop-blur-sm shadow-lg border-0">
         <CardHeader>
           <CardTitle className="text-red-800 flex items-center gap-2">
-            <FootprintsIcon className="h-5 w-5" />
-            Daily Steps
+            <Activity className="h-5 w-5" />
+            Daily Activity
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="text-center p-4 bg-green-50 rounded-lg">
-            <div className="text-3xl font-bold text-green-700">{todaysSteps.toLocaleString()}</div>
-            <div className="text-sm text-gray-600">steps today</div>
-            <div className="text-xs text-gray-500 mt-1">Goal: 10,000 steps</div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="text-center p-4 bg-green-50 rounded-lg">
+              <FootprintsIcon className="h-6 w-6 mx-auto mb-2 text-green-600" />
+              <div className="text-2xl font-bold text-green-700">{todaysActivity.steps.toLocaleString()}</div>
+              <div className="text-sm text-gray-600">steps</div>
+            </div>
+            <div className="text-center p-4 bg-blue-50 rounded-lg">
+              <Clock className="h-6 w-6 mx-auto mb-2 text-blue-600" />
+              <div className="text-2xl font-bold text-blue-700">{todaysActivity.activeTime}</div>
+              <div className="text-sm text-gray-600">active minutes</div>
+            </div>
+            <div className="text-center p-4 bg-orange-50 rounded-lg">
+              <Flame className="h-6 w-6 mx-auto mb-2 text-orange-600" />
+              <div className="text-2xl font-bold text-orange-700">{todaysActivity.calories}</div>
+              <div className="text-sm text-gray-600">calories burned</div>
+            </div>
           </div>
           
-          <div className="flex gap-2">
-            <Input
-              type="number"
-              placeholder="Enter steps from phone"
-              value={steps}
-              onChange={(e) => setSteps(e.target.value)}
-              className="flex-1"
-            />
-            <Button onClick={addSteps} className="bg-green-600 hover:bg-green-700">
-              <Plus className="h-4 w-4 mr-2" />
-              Add Steps
-            </Button>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+            <div>
+              <Label htmlFor="steps">Steps</Label>
+              <Input
+                id="steps"
+                type="number"
+                placeholder="10,000"
+                value={steps}
+                onChange={(e) => setSteps(e.target.value)}
+              />
+            </div>
+            <div>
+              <Label htmlFor="activeTime">Active Time (min)</Label>
+              <Input
+                id="activeTime"
+                type="number"
+                placeholder="30"
+                value={activeTime}
+                onChange={(e) => setActiveTime(e.target.value)}
+              />
+            </div>
+            <div>
+              <Label htmlFor="activityCalories">Activity Calories</Label>
+              <Input
+                id="activityCalories"
+                type="number"
+                placeholder="200"
+                value={activityCalories}
+                onChange={(e) => setActivityCalories(e.target.value)}
+              />
+            </div>
           </div>
+          
+          <Button onClick={addActivity} className="w-full bg-green-600 hover:bg-green-700">
+            <Plus className="h-4 w-4 mr-2" />
+            Log Activity
+          </Button>
 
           {stepEntries.length > 0 && (
             <div className="space-y-2">
-              <h4 className="font-medium text-gray-700">Recent Step Entries:</h4>
-              <div className="max-h-32 overflow-y-auto space-y-1">
+              <h4 className="font-medium text-gray-700">Recent Activity Entries:</h4>
+              <div className="max-h-40 overflow-y-auto space-y-2">
                 {stepEntries.slice(-5).reverse().map((entry) => (
-                  <div key={entry.id} className="flex justify-between text-sm bg-gray-50 p-2 rounded">
-                    <span>{entry.date}</span>
-                    <span className="font-medium">{entry.steps.toLocaleString()} steps</span>
+                  <div key={entry.id} className="flex justify-between items-center text-sm bg-gray-50 p-3 rounded">
+                    <div className="flex-1">
+                      <div className="font-medium">{entry.date}</div>
+                      <div className="text-gray-600">
+                        {entry.steps.toLocaleString()} steps • {entry.activeTime}min • {entry.activityCalories} cal
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => deleteActivity(entry.id)}
+                      className="text-red-600 hover:text-red-800"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
                 ))}
               </div>
@@ -256,6 +385,48 @@ export const HealthTracker = () => {
             <Plus className="h-4 w-4 mr-2" />
             Log Today's Health Data
           </Button>
+
+          {healthNotes.length > 0 && (
+            <div className="space-y-3">
+              <h4 className="font-medium text-gray-700">Previous Health Notes:</h4>
+              <div className="max-h-60 overflow-y-auto space-y-3">
+                {healthNotes.slice().reverse().map((note) => (
+                  <div key={note.id} className="bg-gray-50 p-4 rounded-lg">
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="font-medium text-gray-700">{note.date}</div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => deleteNote(note.id)}
+                        className="text-red-600 hover:text-red-800"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <p className="text-gray-800 mb-3">{note.notes}</p>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+                      <div className="bg-green-100 p-2 rounded text-center">
+                        <div className="font-medium">Mood</div>
+                        <div>{note.mood}/10</div>
+                      </div>
+                      <div className="bg-orange-100 p-2 rounded text-center">
+                        <div className="font-medium">Energy</div>
+                        <div>{note.energy}/10</div>
+                      </div>
+                      <div className="bg-blue-100 p-2 rounded text-center">
+                        <div className="font-medium">Sleep</div>
+                        <div>{note.sleep}/10</div>
+                      </div>
+                      <div className="bg-red-100 p-2 rounded text-center">
+                        <div className="font-medium">Digestion</div>
+                        <div>{note.digestion}/10</div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 

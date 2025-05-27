@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { TrendingUp, Weight, Target, Plus } from "lucide-react";
+import { TrendingUp, Weight, Target, Plus, Activity, Heart, Flame } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface WeightEntry {
@@ -26,6 +26,20 @@ export const ProgressDashboard = () => {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [newGoal, setNewGoal] = useState({ type: "", target: "" });
   const { toast } = useToast();
+
+  // Mock data for demonstration - in a real app this would come from shared state
+  const mockTodaysActivity = {
+    steps: 8500,
+    activeTime: 45,
+    calories: 320
+  };
+
+  const mockHealthMetrics = {
+    mood: 8,
+    energy: 7,
+    sleep: 6,
+    digestion: 9
+  };
 
   const addWeightEntry = () => {
     if (!newWeight) {
@@ -84,6 +98,40 @@ export const ProgressDashboard = () => {
 
   return (
     <div className="space-y-6">
+      {/* Today's Overview */}
+      <Card className="bg-gradient-to-r from-red-600 to-orange-600 text-white shadow-lg border-0">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <TrendingUp className="h-5 w-5" />
+            Today's Overview
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+            <div>
+              <Activity className="h-6 w-6 mx-auto mb-2" />
+              <div className="text-2xl font-bold">{mockTodaysActivity.steps.toLocaleString()}</div>
+              <div className="text-red-100 text-sm">Steps</div>
+            </div>
+            <div>
+              <Flame className="h-6 w-6 mx-auto mb-2" />
+              <div className="text-2xl font-bold">{mockTodaysActivity.calories}</div>
+              <div className="text-red-100 text-sm">Cal Burned</div>
+            </div>
+            <div>
+              <Heart className="h-6 w-6 mx-auto mb-2" />
+              <div className="text-2xl font-bold">{mockHealthMetrics.mood}/10</div>
+              <div className="text-red-100 text-sm">Mood</div>
+            </div>
+            <div>
+              <Activity className="h-6 w-6 mx-auto mb-2" />
+              <div className="text-2xl font-bold">{mockHealthMetrics.energy}/10</div>
+              <div className="text-red-100 text-sm">Energy</div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Weight Tracking */}
       <Card className="bg-white/80 backdrop-blur-sm shadow-lg border-0">
         <CardHeader>
@@ -137,6 +185,35 @@ export const ProgressDashboard = () => {
               </div>
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Weekly Activity Summary */}
+      <Card className="bg-white/80 backdrop-blur-sm shadow-lg border-0">
+        <CardHeader>
+          <CardTitle className="text-red-800 flex items-center gap-2">
+            <Activity className="h-5 w-5" />
+            This Week's Activity
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="text-center p-4 bg-green-50 rounded-lg">
+              <div className="text-2xl font-bold text-green-700">{mockTodaysActivity.steps.toLocaleString()}</div>
+              <div className="text-sm text-gray-600">Avg Daily Steps</div>
+              <div className="text-xs text-gray-500 mt-1">Goal: 10,000</div>
+            </div>
+            <div className="text-center p-4 bg-blue-50 rounded-lg">
+              <div className="text-2xl font-bold text-blue-700">{mockTodaysActivity.activeTime * 7}</div>
+              <div className="text-sm text-gray-600">Total Active Minutes</div>
+              <div className="text-xs text-gray-500 mt-1">This week</div>
+            </div>
+            <div className="text-center p-4 bg-orange-50 rounded-lg">
+              <div className="text-2xl font-bold text-orange-700">{mockTodaysActivity.calories * 7}</div>
+              <div className="text-sm text-gray-600">Total Calories Burned</div>
+              <div className="text-xs text-gray-500 mt-1">This week</div>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
@@ -200,29 +277,31 @@ export const ProgressDashboard = () => {
         </CardContent>
       </Card>
 
-      {/* Progress Overview */}
-      <Card className="bg-gradient-to-r from-red-600 to-orange-600 text-white shadow-lg border-0">
+      {/* Health Metrics Overview */}
+      <Card className="bg-white/80 backdrop-blur-sm shadow-lg border-0">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5" />
-            Progress Summary
+          <CardTitle className="text-red-800 flex items-center gap-2">
+            <Heart className="h-5 w-5" />
+            Health Metrics Overview
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
-            <div>
-              <div className="text-2xl font-bold">{weightEntries.length}</div>
-              <div className="text-red-100">Days Tracked</div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="text-center p-3 bg-green-50 rounded-lg">
+              <div className="text-xl font-bold text-green-700">{mockHealthMetrics.mood}/10</div>
+              <div className="text-sm text-gray-600">Mood</div>
             </div>
-            <div>
-              <div className="text-2xl font-bold">{goals.length}</div>
-              <div className="text-red-100">Active Goals</div>
+            <div className="text-center p-3 bg-orange-50 rounded-lg">
+              <div className="text-xl font-bold text-orange-700">{mockHealthMetrics.energy}/10</div>
+              <div className="text-sm text-gray-600">Energy</div>
             </div>
-            <div>
-              <div className="text-2xl font-bold">
-                {weightEntries.length > 0 ? Math.abs(weightChange).toFixed(1) : "0"}
-              </div>
-              <div className="text-red-100">Recent Change (lbs)</div>
+            <div className="text-center p-3 bg-blue-50 rounded-lg">
+              <div className="text-xl font-bold text-blue-700">{mockHealthMetrics.sleep}/10</div>
+              <div className="text-sm text-gray-600">Sleep</div>
+            </div>
+            <div className="text-center p-3 bg-red-50 rounded-lg">
+              <div className="text-xl font-bold text-red-700">{mockHealthMetrics.digestion}/10</div>
+              <div className="text-sm text-gray-600">Digestion</div>
             </div>
           </div>
         </CardContent>
