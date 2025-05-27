@@ -27,17 +27,26 @@ export const NutritionSummary = () => {
   // Load data on component mount
   useEffect(() => {
     const loadData = async () => {
-      const [waterData, nutritionData] = await Promise.all([
-        getTodaysWaterIntake(),
-        getTodaysNutritionEntries()
-      ]);
-      
-      setWaterIntake(waterData);
-      setNutrients(nutritionData);
+      try {
+        const [waterData, nutritionData] = await Promise.all([
+          getTodaysWaterIntake(),
+          getTodaysNutritionEntries()
+        ]);
+        
+        setWaterIntake(waterData);
+        setNutrients(nutritionData);
+      } catch (error) {
+        console.error('Error loading nutrition data:', error);
+        toast({
+          title: "Error Loading Data",
+          description: "Failed to load your nutrition data",
+          variant: "destructive"
+        });
+      }
     };
 
     loadData();
-  }, []);
+  }, [getTodaysWaterIntake, getTodaysNutritionEntries, toast]);
 
   const addNutrientEntry = async () => {
     if (!newNutrient.name || !newNutrient.amount) {
