@@ -13,9 +13,11 @@ import { NutritionSummary } from "@/components/NutritionSummary";
 import { MobileHeader } from "@/components/MobileHeader";
 import { MobileTabs } from "@/components/MobileTabs";
 import { ResponsiveLayout } from "@/components/ResponsiveLayout";
+import { ProfileEditor } from "@/components/ProfileEditor";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useUserProfile } from "@/hooks/useUserProfile";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -24,6 +26,7 @@ const Index = () => {
   const { toast } = useToast();
   const { signOut, user } = useAuth();
   const isMobile = useIsMobile();
+  const { profile, updateDisplayName } = useUserProfile();
 
   const handleQuickLog = () => {
     const loggedItems = [];
@@ -65,11 +68,22 @@ const Index = () => {
     }
   };
 
+  const getDisplayText = () => {
+    if (profile?.display_name) {
+      return profile.display_name;
+    }
+    return user?.email || '';
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-red-50 via-orange-50 to-amber-50">
       {/* Mobile Header */}
       {isMobile ? (
-        <MobileHeader onQuickLogOpen={() => setIsQuickLogOpen(true)} />
+        <MobileHeader 
+          onQuickLogOpen={() => setIsQuickLogOpen(true)} 
+          profile={profile}
+          onDisplayNameUpdate={updateDisplayName}
+        />
       ) : (
         // Desktop Header
         <header className="bg-gradient-to-r from-red-800 via-red-700 to-orange-700 text-white shadow-lg">
@@ -89,7 +103,13 @@ const Index = () => {
                 {user && (
                   <div className="text-right">
                     <p className="text-sm text-red-100">Welcome back!</p>
-                    <p className="font-medium">{user.email}</p>
+                    <div className="flex items-center space-x-1">
+                      <p className="font-medium">{getDisplayText()}</p>
+                      <ProfileEditor 
+                        displayName={profile?.display_name || null}
+                        onDisplayNameUpdate={updateDisplayName}
+                      />
+                    </div>
                   </div>
                 )}
                 

@@ -6,12 +6,15 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Menu, X, Utensils, LogOut, Plus } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { ProfileEditor } from "@/components/ProfileEditor";
 
 interface MobileHeaderProps {
   onQuickLogOpen: () => void;
+  profile: any;
+  onDisplayNameUpdate: (newName: string) => void;
 }
 
-export const MobileHeader = ({ onQuickLogOpen }: MobileHeaderProps) => {
+export const MobileHeader = ({ onQuickLogOpen, profile, onDisplayNameUpdate }: MobileHeaderProps) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { signOut, user } = useAuth();
   const { toast } = useToast();
@@ -30,6 +33,13 @@ export const MobileHeader = ({ onQuickLogOpen }: MobileHeaderProps) => {
         variant: "destructive",
       });
     }
+  };
+
+  const getDisplayText = () => {
+    if (profile?.display_name) {
+      return profile.display_name;
+    }
+    return user?.email || '';
   };
 
   return (
@@ -72,7 +82,13 @@ export const MobileHeader = ({ onQuickLogOpen }: MobileHeaderProps) => {
                     {user && (
                       <div>
                         <p className="text-sm text-gray-600">Welcome back!</p>
-                        <p className="font-medium truncate">{user.email}</p>
+                        <div className="flex items-center justify-center space-x-1">
+                          <p className="font-medium truncate">{getDisplayText()}</p>
+                          <ProfileEditor 
+                            displayName={profile?.display_name || null}
+                            onDisplayNameUpdate={onDisplayNameUpdate}
+                          />
+                        </div>
                       </div>
                     )}
                   </div>
