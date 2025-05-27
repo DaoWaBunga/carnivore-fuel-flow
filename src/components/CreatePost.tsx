@@ -101,7 +101,7 @@ export const CreatePost = ({ onPostCreated }: CreatePostProps) => {
         imageUrl = await uploadImage();
       }
 
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('community_posts')
         .insert({
           user_id: user.id,
