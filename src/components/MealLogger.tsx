@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Search, Camera } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -21,11 +22,36 @@ const CARNIVORE_FOODS = [
   { name: "Beef Tallow", protein: 0, fat: 100, carbs: 0, category: "Fat" },
 ];
 
+interface Meal {
+  id: number;
+  name: string;
+  protein: number;
+  fat: number;
+  carbs: number;
+  quantity: number;
+  totalProtein: string;
+  totalFat: string;
+  totalCarbs: string;
+  time: string;
+  category: string;
+}
+
 export const MealLogger = () => {
   const [selectedFood, setSelectedFood] = useState("");
   const [quantity, setQuantity] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
-  const [todaysMeals, setTodaysMeals] = useState<any[]>([]);
+  const [todaysMeals, setTodaysMeals] = useState<Meal[]>([]);
+  
+  // Manual food entry states
+  const [manualFood, setManualFood] = useState({
+    name: "",
+    protein: "",
+    fat: "",
+    carbs: "",
+    quantity: "",
+    category: "Custom"
+  });
+  
   const { toast } = useToast();
 
   const filteredFoods = CARNIVORE_FOODS.filter(food =>
@@ -47,7 +73,7 @@ export const MealLogger = () => {
     if (!food) return;
 
     const quantityNum = parseFloat(quantity);
-    const meal = {
+    const meal: Meal = {
       id: Date.now(),
       ...food,
       quantity: quantityNum,
@@ -64,6 +90,51 @@ export const MealLogger = () => {
     toast({
       title: "Meal Added! 🥩",
       description: `${quantityNum}g of ${food.name} logged successfully`
+    });
+  };
+
+  const addManualMeal = () => {
+    if (!manualFood.name || !manualFood.quantity) {
+      toast({
+        title: "Missing Information",
+        description: "Please enter food name and quantity",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const quantityNum = parseFloat(manualFood.quantity);
+    const proteinNum = parseFloat(manualFood.protein) || 0;
+    const fatNum = parseFloat(manualFood.fat) || 0;
+    const carbsNum = parseFloat(manualFood.carbs) || 0;
+
+    const meal: Meal = {
+      id: Date.now(),
+      name: manualFood.name,
+      protein: proteinNum,
+      fat: fatNum,
+      carbs: carbsNum,
+      quantity: quantityNum,
+      totalProtein: (proteinNum * quantityNum / 100).toFixed(1),
+      totalFat: (fatNum * quantityNum / 100).toFixed(1),
+      totalCarbs: (carbsNum * quantityNum / 100).toFixed(1),
+      time: new Date().toLocaleTimeString(),
+      category: manualFood.category
+    };
+
+    setTodaysMeals([...todaysMeals, meal]);
+    setManualFood({
+      name: "",
+      protein: "",
+      fat: "",
+      carbs: "",
+      quantity: "",
+      category: "Custom"
+    });
+    
+    toast({
+      title: "Custom Meal Added! 🍖",
+      description: `${quantityNum}g of ${manualFood.name} logged successfully`
     });
   };
 
@@ -86,58 +157,129 @@ export const MealLogger = () => {
             Log Your Meal
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-            <Input
-              placeholder="Search carnivore foods..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
+        <CardContent>
+          <Tabs defaultValue="database" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="database">Food Database</TabsTrigger>
+              <TabsTrigger value="manual">Manual Entry</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="database" className="space-y-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Search carnivore foods..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="food">Food Item</Label>
-              <Select value={selectedFood} onValueChange={setSelectedFood}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select food..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {filteredFoods.map((food) => (
-                    <SelectItem key={food.name} value={food.name}>
-                      <div className="flex justify-between items-center w-full">
-                        <span>{food.name}</span>
-                        <span className="text-xs text-gray-500 ml-2">{food.category}</span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="food">Food Item</Label>
+                  <Select value={selectedFood} onValueChange={setSelectedFood}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select food..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {filteredFoods.map((food) => (
+                        <SelectItem key={food.name} value={food.name}>
+                          <div className="flex justify-between items-center w-full">
+                            <span>{food.name}</span>
+                            <span className="text-xs text-gray-500 ml-2">{food.category}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-            <div>
-              <Label htmlFor="quantity">Quantity (grams)</Label>
-              <Input
-                id="quantity"
-                type="number"
-                placeholder="e.g., 200"
-                value={quantity}
-                onChange={(e) => setQuantity(e.target.value)}
-              />
-            </div>
-          </div>
+                <div>
+                  <Label htmlFor="quantity">Quantity (grams)</Label>
+                  <Input
+                    id="quantity"
+                    type="number"
+                    placeholder="e.g., 200"
+                    value={quantity}
+                    onChange={(e) => setQuantity(e.target.value)}
+                  />
+                </div>
+              </div>
 
-          <div className="flex gap-2">
-            <Button onClick={addMeal} className="bg-red-600 hover:bg-red-700 flex-1">
-              <Plus className="h-4 w-4 mr-2" />
-              Add Meal
-            </Button>
-            <Button variant="outline" className="border-red-200">
-              <Camera className="h-4 w-4" />
-            </Button>
-          </div>
+              <div className="flex gap-2">
+                <Button onClick={addMeal} className="bg-red-600 hover:bg-red-700 flex-1">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Meal
+                </Button>
+                <Button variant="outline" className="border-red-200">
+                  <Camera className="h-4 w-4" />
+                </Button>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="manual" className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="manualName">Food Name</Label>
+                  <Input
+                    id="manualName"
+                    placeholder="e.g., Wild Venison"
+                    value={manualFood.name}
+                    onChange={(e) => setManualFood({ ...manualFood, name: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="manualQuantity">Quantity (grams)</Label>
+                  <Input
+                    id="manualQuantity"
+                    type="number"
+                    placeholder="e.g., 200"
+                    value={manualFood.quantity}
+                    onChange={(e) => setManualFood({ ...manualFood, quantity: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <Label htmlFor="manualProtein">Protein (g per 100g)</Label>
+                  <Input
+                    id="manualProtein"
+                    type="number"
+                    placeholder="e.g., 25"
+                    value={manualFood.protein}
+                    onChange={(e) => setManualFood({ ...manualFood, protein: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="manualFat">Fat (g per 100g)</Label>
+                  <Input
+                    id="manualFat"
+                    type="number"
+                    placeholder="e.g., 15"
+                    value={manualFood.fat}
+                    onChange={(e) => setManualFood({ ...manualFood, fat: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="manualCarbs">Carbs (g per 100g)</Label>
+                  <Input
+                    id="manualCarbs"
+                    type="number"
+                    placeholder="e.g., 0"
+                    value={manualFood.carbs}
+                    onChange={(e) => setManualFood({ ...manualFood, carbs: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <Button onClick={addManualMeal} className="w-full bg-red-600 hover:bg-red-700">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Custom Meal
+              </Button>
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
 

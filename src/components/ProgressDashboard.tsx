@@ -1,151 +1,230 @@
 
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
-import { TrendingUp, Weight, Activity, Heart } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { TrendingUp, Weight, Target, Plus } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
-const weightData = [
-  { date: "Week 1", weight: 180, energy: 7 },
-  { date: "Week 2", weight: 178, energy: 8 },
-  { date: "Week 3", weight: 176, energy: 8 },
-  { date: "Week 4", weight: 175, energy: 9 },
-  { date: "Week 5", weight: 173, energy: 9 },
-  { date: "Week 6", weight: 172, energy: 8 },
-];
+interface WeightEntry {
+  id: number;
+  weight: number;
+  date: string;
+}
 
-const weeklyNutrition = [
-  { week: "W1", protein: 150, fat: 120, organs: 2 },
-  { week: "W2", protein: 165, fat: 135, organs: 3 },
-  { week: "W3", protein: 170, fat: 140, organs: 4 },
-  { week: "W4", protein: 160, fat: 130, organs: 3 },
-  { week: "W5", protein: 175, fat: 145, organs: 5 },
-  { week: "W6", protein: 180, fat: 150, organs: 4 },
-];
+interface Goal {
+  id: number;
+  type: string;
+  target: number;
+  current: number;
+}
 
 export const ProgressDashboard = () => {
+  const [weightEntries, setWeightEntries] = useState<WeightEntry[]>([]);
+  const [newWeight, setNewWeight] = useState("");
+  const [goals, setGoals] = useState<Goal[]>([]);
+  const [newGoal, setNewGoal] = useState({ type: "", target: "" });
+  const { toast } = useToast();
+
+  const addWeightEntry = () => {
+    if (!newWeight) {
+      toast({
+        title: "Weight Required",
+        description: "Please enter your weight",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const entry: WeightEntry = {
+      id: Date.now(),
+      weight: parseFloat(newWeight),
+      date: new Date().toLocaleDateString()
+    };
+
+    setWeightEntries([...weightEntries, entry]);
+    setNewWeight("");
+    
+    toast({
+      title: "Weight Logged! ⚖️",
+      description: `${newWeight} lbs recorded for today`
+    });
+  };
+
+  const addGoal = () => {
+    if (!newGoal.type || !newGoal.target) {
+      toast({
+        title: "Goal Information Required",
+        description: "Please enter goal type and target",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const goal: Goal = {
+      id: Date.now(),
+      type: newGoal.type,
+      target: parseFloat(newGoal.target),
+      current: 0
+    };
+
+    setGoals([...goals, goal]);
+    setNewGoal({ type: "", target: "" });
+    
+    toast({
+      title: "Goal Added! 🎯",
+      description: `New ${newGoal.type} goal set`
+    });
+  };
+
+  const currentWeight = weightEntries.length > 0 ? weightEntries[weightEntries.length - 1].weight : 0;
+  const weightChange = weightEntries.length > 1 ? 
+    weightEntries[weightEntries.length - 1].weight - weightEntries[weightEntries.length - 2].weight : 0;
+
   return (
     <div className="space-y-6">
-      {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="bg-gradient-to-br from-red-500 to-red-600 text-white border-0">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-red-100 text-sm">Current Weight</p>
-                <p className="text-2xl font-bold">172 lbs</p>
-                <p className="text-red-100 text-xs">-8 lbs this month</p>
-              </div>
-              <Weight className="h-8 w-8 text-red-200" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-orange-500 to-orange-600 text-white border-0">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-orange-100 text-sm">Energy Level</p>
-                <p className="text-2xl font-bold">8/10</p>
-                <p className="text-orange-100 text-xs">+2 from last week</p>
-              </div>
-              <Activity className="h-8 w-8 text-orange-200" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-amber-500 to-amber-600 text-white border-0">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-amber-100 text-sm">Carnivore Streak</p>
-                <p className="text-2xl font-bold">42 days</p>
-                <p className="text-amber-100 text-xs">Personal best!</p>
-              </div>
-              <TrendingUp className="h-8 w-8 text-amber-200" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-red-600 to-red-700 text-white border-0">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-red-100 text-sm">Mood Rating</p>
-                <p className="text-2xl font-bold">9/10</p>
-                <p className="text-red-100 text-xs">Excellent</p>
-              </div>
-              <Heart className="h-8 w-8 text-red-200" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Weight & Energy Trend */}
+      {/* Weight Tracking */}
       <Card className="bg-white/80 backdrop-blur-sm shadow-lg border-0">
         <CardHeader>
-          <CardTitle className="text-red-800">Weight & Energy Trends</CardTitle>
+          <CardTitle className="text-red-800 flex items-center gap-2">
+            <Weight className="h-5 w-5" />
+            Weight Progress
+          </CardTitle>
         </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={weightData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis dataKey="date" stroke="#666" />
-              <YAxis yAxisId="weight" domain={[170, 185]} stroke="#dc2626" />
-              <YAxis yAxisId="energy" orientation="right" domain={[0, 10]} stroke="#ea580c" />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: 'rgba(255, 255, 255, 0.95)', 
-                  border: 'none', 
-                  borderRadius: '8px',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-                }} 
-              />
-              <Line 
-                yAxisId="weight" 
-                type="monotone" 
-                dataKey="weight" 
-                stroke="#dc2626" 
-                strokeWidth={3}
-                dot={{ fill: '#dc2626', strokeWidth: 2, r: 6 }}
-                name="Weight (lbs)"
-              />
-              <Line 
-                yAxisId="energy" 
-                type="monotone" 
-                dataKey="energy" 
-                stroke="#ea580c" 
-                strokeWidth={3}
-                dot={{ fill: '#ea580c', strokeWidth: 2, r: 6 }}
-                name="Energy Level"
-              />
-            </LineChart>
-          </ResponsiveContainer>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="text-center p-4 bg-red-50 rounded-lg">
+              <div className="text-2xl font-bold text-red-700">{currentWeight || "---"}</div>
+              <div className="text-sm text-gray-600">Current Weight (lbs)</div>
+            </div>
+            <div className="text-center p-4 bg-orange-50 rounded-lg">
+              <div className="text-2xl font-bold text-orange-700">
+                {weightChange > 0 ? `+${weightChange.toFixed(1)}` : weightChange.toFixed(1) || "---"}
+              </div>
+              <div className="text-sm text-gray-600">Change (lbs)</div>
+            </div>
+            <div className="text-center p-4 bg-amber-50 rounded-lg">
+              <div className="text-2xl font-bold text-amber-700">{weightEntries.length}</div>
+              <div className="text-sm text-gray-600">Entries Logged</div>
+            </div>
+          </div>
+          
+          <div className="flex gap-2">
+            <Input
+              type="number"
+              placeholder="Enter weight (lbs)"
+              value={newWeight}
+              onChange={(e) => setNewWeight(e.target.value)}
+              className="flex-1"
+            />
+            <Button onClick={addWeightEntry} className="bg-red-600 hover:bg-red-700">
+              <Plus className="h-4 w-4 mr-2" />
+              Log Weight
+            </Button>
+          </div>
+
+          {weightEntries.length > 0 && (
+            <div className="space-y-2">
+              <h4 className="font-medium text-gray-700">Recent Entries:</h4>
+              <div className="max-h-32 overflow-y-auto space-y-1">
+                {weightEntries.slice(-5).reverse().map((entry) => (
+                  <div key={entry.id} className="flex justify-between text-sm bg-gray-50 p-2 rounded">
+                    <span>{entry.date}</span>
+                    <span className="font-medium">{entry.weight} lbs</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
-      {/* Nutrition Breakdown */}
+      {/* Goals Tracking */}
       <Card className="bg-white/80 backdrop-blur-sm shadow-lg border-0">
         <CardHeader>
-          <CardTitle className="text-red-800">Weekly Nutrition Overview</CardTitle>
+          <CardTitle className="text-red-800 flex items-center gap-2">
+            <Target className="h-5 w-5" />
+            Goals & Targets
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="goalType">Goal Type</Label>
+              <Input
+                id="goalType"
+                placeholder="e.g., Target Weight, Body Fat %"
+                value={newGoal.type}
+                onChange={(e) => setNewGoal({ ...newGoal, type: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label htmlFor="goalTarget">Target Value</Label>
+              <Input
+                id="goalTarget"
+                type="number"
+                placeholder="e.g., 175"
+                value={newGoal.target}
+                onChange={(e) => setNewGoal({ ...newGoal, target: e.target.value })}
+              />
+            </div>
+          </div>
+          
+          <Button onClick={addGoal} className="w-full bg-red-600 hover:bg-red-700">
+            <Plus className="h-4 w-4 mr-2" />
+            Add Goal
+          </Button>
+
+          {goals.length > 0 && (
+            <div className="space-y-3">
+              <h4 className="font-medium text-gray-700">Active Goals:</h4>
+              {goals.map((goal) => (
+                <div key={goal.id} className="p-3 bg-red-50 rounded-lg">
+                  <div className="flex justify-between items-center">
+                    <span className="font-medium">{goal.type}</span>
+                    <span className="text-red-700 font-bold">
+                      {goal.current} / {goal.target}
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+                    <div 
+                      className="bg-red-600 h-2 rounded-full" 
+                      style={{ width: `${Math.min((goal.current / goal.target) * 100, 100)}%` }}
+                    ></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Progress Overview */}
+      <Card className="bg-gradient-to-r from-red-600 to-orange-600 text-white shadow-lg border-0">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <TrendingUp className="h-5 w-5" />
+            Progress Summary
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={weeklyNutrition}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis dataKey="week" stroke="#666" />
-              <YAxis stroke="#666" />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: 'rgba(255, 255, 255, 0.95)', 
-                  border: 'none', 
-                  borderRadius: '8px',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-                }} 
-              />
-              <Bar dataKey="protein" fill="#dc2626" name="Protein (g)" radius={[2, 2, 0, 0]} />
-              <Bar dataKey="fat" fill="#ea580c" name="Fat (g)" radius={[2, 2, 0, 0]} />
-              <Bar dataKey="organs" fill="#f59e0b" name="Organ Servings" radius={[2, 2, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+            <div>
+              <div className="text-2xl font-bold">{weightEntries.length}</div>
+              <div className="text-red-100">Days Tracked</div>
+            </div>
+            <div>
+              <div className="text-2xl font-bold">{goals.length}</div>
+              <div className="text-red-100">Active Goals</div>
+            </div>
+            <div>
+              <div className="text-2xl font-bold">
+                {weightEntries.length > 0 ? Math.abs(weightChange).toFixed(1) : "0"}
+              </div>
+              <div className="text-red-100">Recent Change (lbs)</div>
+            </div>
+          </div>
         </CardContent>
       </Card>
     </div>

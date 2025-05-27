@@ -6,8 +6,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Textarea } from "@/components/ui/textarea";
-import { Heart, Activity, Moon, Smile, Plus } from "lucide-react";
+import { Heart, Activity, Moon, Smile, Plus, FootprintsIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+
+interface StepEntry {
+  id: number;
+  steps: number;
+  date: string;
+}
 
 export const HealthTracker = () => {
   const [mood, setMood] = useState([7]);
@@ -15,10 +21,19 @@ export const HealthTracker = () => {
   const [sleep, setSleep] = useState([7]);
   const [digestion, setDigestion] = useState([8]);
   const [weight, setWeight] = useState("");
+  const [bodyFat, setBodyFat] = useState("");
+  const [waist, setWaist] = useState("");
   const [notes, setNotes] = useState("");
+  const [steps, setSteps] = useState("");
+  const [stepEntries, setStepEntries] = useState<StepEntry[]>([]);
   const { toast } = useToast();
 
   const logHealthMetrics = () => {
+    const metrics = [];
+    if (weight) metrics.push(`Weight: ${weight} lbs`);
+    if (bodyFat) metrics.push(`Body Fat: ${bodyFat}%`);
+    if (waist) metrics.push(`Waist: ${waist} inches`);
+    
     toast({
       title: "Health Metrics Logged! 📊",
       description: "Your daily health data has been saved successfully"
@@ -26,8 +41,39 @@ export const HealthTracker = () => {
     
     // Reset form
     setWeight("");
+    setBodyFat("");
+    setWaist("");
     setNotes("");
   };
+
+  const addSteps = () => {
+    if (!steps) {
+      toast({
+        title: "Steps Required",
+        description: "Please enter your step count",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const entry: StepEntry = {
+      id: Date.now(),
+      steps: parseInt(steps),
+      date: new Date().toLocaleDateString()
+    };
+
+    setStepEntries([...stepEntries, entry]);
+    setSteps("");
+    
+    toast({
+      title: "Steps Logged! 👟",
+      description: `${steps} steps added for today`
+    });
+  };
+
+  const todaysSteps = stepEntries
+    .filter(entry => entry.date === new Date().toLocaleDateString())
+    .reduce((total, entry) => total + entry.steps, 0);
 
   const healthMetrics = [
     {
@@ -100,6 +146,51 @@ export const HealthTracker = () => {
         ))}
       </div>
 
+      {/* Steps Tracking */}
+      <Card className="bg-white/80 backdrop-blur-sm shadow-lg border-0">
+        <CardHeader>
+          <CardTitle className="text-red-800 flex items-center gap-2">
+            <FootprintsIcon className="h-5 w-5" />
+            Daily Steps
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="text-center p-4 bg-green-50 rounded-lg">
+            <div className="text-3xl font-bold text-green-700">{todaysSteps.toLocaleString()}</div>
+            <div className="text-sm text-gray-600">steps today</div>
+            <div className="text-xs text-gray-500 mt-1">Goal: 10,000 steps</div>
+          </div>
+          
+          <div className="flex gap-2">
+            <Input
+              type="number"
+              placeholder="Enter steps from phone"
+              value={steps}
+              onChange={(e) => setSteps(e.target.value)}
+              className="flex-1"
+            />
+            <Button onClick={addSteps} className="bg-green-600 hover:bg-green-700">
+              <Plus className="h-4 w-4 mr-2" />
+              Add Steps
+            </Button>
+          </div>
+
+          {stepEntries.length > 0 && (
+            <div className="space-y-2">
+              <h4 className="font-medium text-gray-700">Recent Step Entries:</h4>
+              <div className="max-h-32 overflow-y-auto space-y-1">
+                {stepEntries.slice(-5).reverse().map((entry) => (
+                  <div key={entry.id} className="flex justify-between text-sm bg-gray-50 p-2 rounded">
+                    <span>{entry.date}</span>
+                    <span className="font-medium">{entry.steps.toLocaleString()} steps</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Body Metrics */}
       <Card className="bg-white/80 backdrop-blur-sm shadow-lg border-0">
         <CardHeader>
@@ -118,19 +209,23 @@ export const HealthTracker = () => {
               />
             </div>
             <div>
-              <Label htmlFor="bodyfat">Body Fat % (optional)</Label>
+              <Label htmlFor="bodyfat">Body Fat %</Label>
               <Input
                 id="bodyfat"
                 type="number"
                 placeholder="e.g., 15"
+                value={bodyFat}
+                onChange={(e) => setBodyFat(e.target.value)}
               />
             </div>
             <div>
-              <Label htmlFor="waist">Waist (inches, optional)</Label>
+              <Label htmlFor="waist">Waist (inches)</Label>
               <Input
                 id="waist"
                 type="number"
                 placeholder="e.g., 32"
+                value={waist}
+                onChange={(e) => setWaist(e.target.value)}
               />
             </div>
           </div>
