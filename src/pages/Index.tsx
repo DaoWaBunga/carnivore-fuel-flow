@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -6,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, TrendingUp, Activity, Heart, Utensils, LogOut } from "lucide-react";
+import { Plus, TrendingUp, Info, Heart, Utensils, LogOut } from "lucide-react";
 import { MealLogger } from "@/components/MealLogger";
 import { ProgressDashboard } from "@/components/ProgressDashboard";
 import { HealthTracker } from "@/components/HealthTracker";
@@ -221,9 +220,9 @@ const Index = () => {
                 <Heart className="h-4 w-4" />
                 Health
               </TabsTrigger>
-              <TabsTrigger value="fitness" className="flex items-center gap-2">
-                <Activity className="h-4 w-4" />
-                Fitness
+              <TabsTrigger value="info" className="flex items-center gap-2">
+                <Info className="h-4 w-4" />
+                Info
               </TabsTrigger>
             </TabsList>
           )}
@@ -247,13 +246,66 @@ const Index = () => {
             <HealthTracker />
           </TabsContent>
 
-          <TabsContent value="fitness">
+          <TabsContent value="info">
             <Card className="bg-white/80 backdrop-blur-sm shadow-lg border-0">
               <CardHeader>
-                <CardTitle className="text-red-800">Fitness Tracking</CardTitle>
+                <CardTitle className="text-red-800 flex items-center gap-2">
+                  <Info className="h-5 w-5" />
+                  Carnivore Diet: A Basic Overview
+                </CardTitle>
               </CardHeader>
-              <CardContent>
-                <p className="text-gray-600">Advanced fitness tracking features coming soon! For now, you can log steps in the Health tab.</p>
+              <CardContent className="prose max-w-none">
+                <p className="text-gray-700 mb-4">
+                  The Carnivore Diet is a unique way of eating that focuses exclusively on animal-based foods meat, fish, eggs, and sometimes dairy while completely eliminating all plant-based foods. Followers eat foods like beef, pork, chicken, seafood, organ meats, eggs, animal fats, and, if tolerated, some cheese or heavy cream. Fruits, vegetables, grains, legumes, nuts, seeds, and all processed foods are excluded.
+                </p>
+
+                <h3 className="text-lg font-semibold text-red-700 mt-6 mb-3">Why Do People Try the Carnivore Diet?</h3>
+                <p className="text-gray-700 mb-4">
+                  Advocates believe that an all-animal diet can provide complete nutrition, support weight loss, reduce inflammation, stabilize blood sugar, improve digestion, and even help with autoimmune or mood issues. Many people adopt the diet as a strict "elimination diet" to identify food sensitivities, while others choose it for simplicity and satiety.
+                </p>
+
+                <h3 className="text-lg font-semibold text-red-700 mt-6 mb-3">Types of Carnivore Diets</h3>
+                <ul className="text-gray-700 mb-4 space-y-2">
+                  <li><strong>Strict Carnivore:</strong> Only meat, fish, eggs, animal fats, and water.</li>
+                  <li><strong>Nose-to-Tail:</strong> Includes organ meats and collagen-rich parts for broader nutrition.</li>
+                  <li><strong>Lion Diet:</strong> The most restrictive, typically only ruminant meat (like beef or lamb), salt, and water.</li>
+                </ul>
+
+                <h3 className="text-lg font-semibold text-red-700 mt-6 mb-3">What Do You Eat?</h3>
+                <ul className="text-gray-700 mb-4 space-y-2">
+                  <li><strong>Animal Proteins:</strong> Beef, pork, chicken, turkey, lamb, wild game, fish, seafood.</li>
+                  <li><strong>Eggs:</strong> Whole eggs, any style.</li>
+                  <li><strong>Organ Meats:</strong> Liver, kidney, heart, bone marrow, etc. (especially encouraged for nutrients).</li>
+                  <li><strong>Animal Fats:</strong> Butter, ghee, tallow, lard, dripping.</li>
+                  <li><strong>Dairy (optional):</strong> Cheese, heavy cream, or yogurt if tolerated.</li>
+                </ul>
+
+                <h3 className="text-lg font-semibold text-red-700 mt-6 mb-3">Typical Benefits Reported</h3>
+                <ul className="text-gray-700 mb-4 space-y-1">
+                  <li>• Weight loss and reduced cravings</li>
+                  <li>• More stable energy and improved mental clarity</li>
+                  <li>• Relief from some digestive, inflammatory, or autoimmune symptoms</li>
+                  <li>• Simpler meal planning and improved satiety</li>
+                </ul>
+
+                <h3 className="text-lg font-semibold text-red-700 mt-6 mb-3">Points to Consider</h3>
+                <ul className="text-gray-700 mb-4 space-y-1">
+                  <li>• The diet is very low in carbohydrates and completely excludes fiber.</li>
+                  <li>• Some nutrients commonly found in plants (like vitamin C and magnesium) are low and may require careful planning or supplements.</li>
+                  <li>• Blood cholesterol can increase for some people, so regular health checkups are recommended.</li>
+                  <li>• It's important to include a variety of animal foods (especially organ meats) for optimal nutrition.</li>
+                </ul>
+
+                <h3 className="text-lg font-semibold text-red-700 mt-6 mb-3">Who Might Try Carnivore?</h3>
+                <p className="text-gray-700 mb-4">
+                  People often try the carnivore diet after not getting results from other approaches, especially for weight loss plateaus, gut issues, autoimmune conditions, or simply to see how they feel on a simple, high-protein, high-fat diet. It's popular among both health experimenters and those looking for a no-fuss way of eating.
+                </p>
+
+                <div className="bg-orange-50 border-l-4 border-orange-400 p-4 mt-6">
+                  <p className="text-orange-800">
+                    <strong>Note:</strong> The Carnivore Diet is highly restrictive and isn't for everyone. Consult with a healthcare provider before starting any major dietary change, especially if you have pre-existing health conditions.
+                  </p>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
