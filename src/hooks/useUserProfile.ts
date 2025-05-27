@@ -8,7 +8,7 @@ interface UserProfile {
   email: string | null;
   first_name: string | null;
   last_name: string | null;
-  display_name?: string | null;
+  display_name: string | null;
 }
 
 export const useUserProfile = () => {
@@ -33,8 +33,7 @@ export const useUserProfile = () => {
 
         if (error) throw error;
 
-        // Ensure display_name is included in the profile object
-        setProfile(data ? { ...data, display_name: data.display_name || null } : null);
+        setProfile(data);
       } catch (error) {
         console.error('Error fetching user profile:', error);
       } finally {
