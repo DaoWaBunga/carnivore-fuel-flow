@@ -6,11 +6,10 @@ import { Heart, Clock, Utensils, MoreVertical, Trash2, Edit } from "lucide-react
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import {
-  ContextMenu,
-  ContextMenuContent,
-  ContextMenuItem,
-  ContextMenuTrigger,
-} from "@/components/ui/context-menu";
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -49,6 +48,7 @@ interface PostCardProps {
 export const PostCard = ({ post, onLikeToggle, onPostUpdate, onPostDelete }: PostCardProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showOptionsMenu, setShowOptionsMenu] = useState(false);
   const { user } = useAuth();
 
   const isOwnPost = user?.id === post.user_id;
@@ -105,10 +105,12 @@ export const PostCard = ({ post, onLikeToggle, onPostUpdate, onPostDelete }: Pos
 
   const handleEdit = () => {
     setIsEditing(true);
+    setShowOptionsMenu(false);
   };
 
   const handleDelete = () => {
     setShowDeleteDialog(true);
+    setShowOptionsMenu(false);
   };
 
   const confirmDelete = () => {
@@ -155,26 +157,33 @@ export const PostCard = ({ post, onLikeToggle, onPostUpdate, onPostDelete }: Pos
             </div>
             
             {isOwnPost && (
-              <ContextMenu>
-                <ContextMenuTrigger asChild>
+              <Popover open={showOptionsMenu} onOpenChange={setShowOptionsMenu}>
+                <PopoverTrigger asChild>
                   <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                     <MoreVertical className="h-4 w-4" />
                   </Button>
-                </ContextMenuTrigger>
-                <ContextMenuContent>
-                  <ContextMenuItem onClick={handleEdit} className="flex items-center gap-2">
-                    <Edit className="h-4 w-4" />
-                    Edit Post
-                  </ContextMenuItem>
-                  <ContextMenuItem 
-                    onClick={handleDelete} 
-                    className="flex items-center gap-2 text-red-600"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    Delete Post
-                  </ContextMenuItem>
-                </ContextMenuContent>
-              </ContextMenu>
+                </PopoverTrigger>
+                <PopoverContent className="w-48 p-1 bg-white border shadow-lg">
+                  <div className="flex flex-col">
+                    <Button
+                      variant="ghost"
+                      onClick={handleEdit}
+                      className="flex items-center gap-2 justify-start px-3 py-2 h-auto"
+                    >
+                      <Edit className="h-4 w-4" />
+                      Edit Post
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      onClick={handleDelete}
+                      className="flex items-center gap-2 justify-start px-3 py-2 h-auto text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Delete Post
+                    </Button>
+                  </div>
+                </PopoverContent>
+              </Popover>
             )}
           </div>
         </CardHeader>
