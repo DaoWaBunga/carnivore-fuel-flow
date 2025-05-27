@@ -130,6 +130,50 @@ export const useCommunityFeed = () => {
     }
   };
 
+  const handlePostUpdate = (updatedPost: any) => {
+    setPosts(prevPosts =>
+      prevPosts.map(post =>
+        post.id === updatedPost.id ? { ...updatedPost, user_liked: post.user_liked } : post
+      )
+    );
+  };
+
+  const handlePostDelete = async (postId: string) => {
+    if (!user) {
+      toast({
+        title: "Please log in",
+        description: "You need to be logged in to delete posts",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const { error } = await (supabase as any)
+        .from('community_posts')
+        .delete()
+        .eq('id', postId)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      // Remove the post from the state
+      setPosts(prevPosts => prevPosts.filter(post => post.id !== postId));
+      
+      toast({
+        title: "Post deleted",
+        description: "Your post has been deleted successfully"
+      });
+    } catch (error) {
+      console.error('Error deleting post:', error);
+      toast({
+        title: "Error deleting post",
+        description: "Please try again later",
+        variant: "destructive"
+      });
+    }
+  };
+
   useEffect(() => {
     fetchPosts();
   }, [user]);
@@ -138,6 +182,8 @@ export const useCommunityFeed = () => {
     posts,
     loading,
     fetchPosts,
-    handleLikeToggle
+    handleLikeToggle,
+    handlePostUpdate,
+    handlePostDelete
   };
 };

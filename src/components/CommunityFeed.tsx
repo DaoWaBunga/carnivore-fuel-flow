@@ -10,7 +10,14 @@ import { useCommunityFeed } from "@/hooks/useCommunityFeed";
 export const CommunityFeed = () => {
   const [isCreatePostOpen, setIsCreatePostOpen] = useState(false);
   const { toast } = useToast();
-  const { posts, loading, fetchPosts, handleLikeToggle } = useCommunityFeed();
+  const { 
+    posts, 
+    loading, 
+    fetchPosts, 
+    handleLikeToggle, 
+    handlePostUpdate, 
+    handlePostDelete 
+  } = useCommunityFeed();
 
   const handlePostCreated = () => {
     fetchPosts();
@@ -42,6 +49,8 @@ export const CommunityFeed = () => {
               key={post.id}
               post={post}
               onLikeToggle={handleLikeToggle}
+              onPostUpdate={handlePostUpdate}
+              onPostDelete={handlePostDelete}
             />
           ))}
         </div>

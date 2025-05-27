@@ -1,9 +1,28 @@
 
+import { useState } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Heart, Clock, Utensils } from "lucide-react";
+import { Heart, Clock, Utensils, MoreVertical, Trash2, Edit } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { PostEditForm } from "./PostEditForm";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface PostCardProps {
   post: {
@@ -23,9 +42,17 @@ interface PostCardProps {
     user_liked: boolean;
   };
   onLikeToggle: (postId: string, currentlyLiked: boolean) => void;
+  onPostUpdate?: (updatedPost: any) => void;
+  onPostDelete?: (postId: string) => void;
 }
 
-export const PostCard = ({ post, onLikeToggle }: PostCardProps) => {
+export const PostCard = ({ post, onLikeToggle, onPostUpdate, onPostDelete }: PostCardProps) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const { user } = useAuth();
+
+  const isOwnPost = user?.id === post.user_id;
+
   const getDisplayName = () => {
     if (post.profiles?.display_name) {
       return post.profiles.display_name;
@@ -76,66 +103,139 @@ export const PostCard = ({ post, onLikeToggle }: PostCardProps) => {
     );
   };
 
+  const handleEdit = () => {
+    setIsEditing(true);
+  };
+
+  const handleDelete = () => {
+    setShowDeleteDialog(true);
+  };
+
+  const confirmDelete = () => {
+    onPostDelete?.(post.id);
+    setShowDeleteDialog(false);
+  };
+
+  const handleEditComplete = (updatedPost: any) => {
+    onPostUpdate?.(updatedPost);
+    setIsEditing(false);
+  };
+
+  if (isEditing) {
+    return (
+      <PostEditForm
+        post={post}
+        onSave={handleEditComplete}
+        onCancel={() => setIsEditing(false)}
+      />
+    );
+  }
+
   return (
-    <Card className="bg-white/80 backdrop-blur-sm shadow-lg border-0">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
-              <span className="text-red-600 font-semibold text-lg">
-                {getDisplayName().charAt(0).toUpperCase()}
-              </span>
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <p className="font-medium text-gray-900">{getDisplayName()}</p>
-                {getPostTypeIcon()}
+    <>
+      <Card className="bg-white/80 backdrop-blur-sm shadow-lg border-0">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                <span className="text-red-600 font-semibold text-lg">
+                  {getDisplayName().charAt(0).toUpperCase()}
+                </span>
               </div>
-              <div className="flex items-center gap-1 text-sm text-gray-500">
-                <Clock className="h-3 w-3" />
-                {formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}
+              <div>
+                <div className="flex items-center gap-2">
+                  <p className="font-medium text-gray-900">{getDisplayName()}</p>
+                  {getPostTypeIcon()}
+                </div>
+                <div className="flex items-center gap-1 text-sm text-gray-500">
+                  <Clock className="h-3 w-3" />
+                  {formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}
+                </div>
               </div>
             </div>
-          </div>
-        </div>
-      </CardHeader>
-      
-      <CardContent className="pt-0">
-        <p className="text-gray-700 mb-3 whitespace-pre-wrap">{post.content}</p>
-        
-        {post.image_url && (
-          <div className="mb-3">
-            <img
-              src={post.image_url}
-              alt="Post image"
-              className="w-full h-auto max-h-96 object-cover rounded-lg"
-              loading="lazy"
-            />
-          </div>
-        )}
-        
-        {formatMealData()}
-        
-        <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-100">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onLikeToggle(post.id, post.user_liked)}
-            className={cn(
-              "flex items-center gap-2 hover:bg-red-50",
-              post.user_liked ? "text-red-600" : "text-gray-600"
+            
+            {isOwnPost && (
+              <ContextMenu>
+                <ContextMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </ContextMenuTrigger>
+                <ContextMenuContent>
+                  <ContextMenuItem onClick={handleEdit} className="flex items-center gap-2">
+                    <Edit className="h-4 w-4" />
+                    Edit Post
+                  </ContextMenuItem>
+                  <ContextMenuItem 
+                    onClick={handleDelete} 
+                    className="flex items-center gap-2 text-red-600"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    Delete Post
+                  </ContextMenuItem>
+                </ContextMenuContent>
+              </ContextMenu>
             )}
-          >
-            <Heart 
+          </div>
+        </CardHeader>
+        
+        <CardContent className="pt-0">
+          <p className="text-gray-700 mb-3 whitespace-pre-wrap">{post.content}</p>
+          
+          {post.image_url && (
+            <div className="mb-3">
+              <img
+                src={post.image_url}
+                alt="Post image"
+                className="w-full h-auto max-h-96 object-cover rounded-lg"
+                loading="lazy"
+              />
+            </div>
+          )}
+          
+          {formatMealData()}
+          
+          <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-100">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onLikeToggle(post.id, post.user_liked)}
               className={cn(
-                "h-4 w-4",
-                post.user_liked && "fill-current"
-              )} 
-            />
-            <span>{post.like_count}</span>
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+                "flex items-center gap-2 hover:bg-red-50",
+                post.user_liked ? "text-red-600" : "text-gray-600"
+              )}
+            >
+              <Heart 
+                className={cn(
+                  "h-4 w-4",
+                  post.user_liked && "fill-current"
+                )} 
+              />
+              <span>{post.like_count}</span>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Post</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this post? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDelete}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 };
