@@ -31,7 +31,7 @@ export const useCommunityFeed = () => {
     try {
       setLoading(true);
       
-      const { data: postsData, error } = await supabase
+      const { data: postsData, error } = await (supabase as any)
         .from('community_posts')
         .select(`
           *,
@@ -50,7 +50,7 @@ export const useCommunityFeed = () => {
       // Check which posts the current user has liked
       if (user && postsData) {
         const postIds = postsData.map((post: any) => post.id);
-        const { data: likesData } = await supabase
+        const { data: likesData } = await (supabase as any)
           .from('post_likes')
           .select('post_id')
           .eq('user_id', user.id)
@@ -92,14 +92,14 @@ export const useCommunityFeed = () => {
     try {
       if (currentlyLiked) {
         // Unlike the post
-        await supabase
+        await (supabase as any)
           .from('post_likes')
           .delete()
           .eq('post_id', postId)
           .eq('user_id', user.id);
       } else {
         // Like the post
-        await supabase
+        await (supabase as any)
           .from('post_likes')
           .insert({
             post_id: postId,
