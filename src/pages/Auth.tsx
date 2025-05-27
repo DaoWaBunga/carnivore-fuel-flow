@@ -9,6 +9,9 @@ import { Utensils, Mail, Lock, User } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
+import { loginSchema, signupSchema, type LoginFormData, type SignupFormData } from "@/lib/validation";
+import { authRateLimiter } from "@/lib/rateLimiter";
+import { handleSecureError, createSecureError, sanitizeInput } from "@/lib/errorHandler";
 
 const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -16,31 +19,94 @@ const Auth = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  const [loginData, setLoginData] = useState({
+  const [loginData, setLoginData] = useState<LoginFormData>({
     email: "",
     password: "",
   });
 
-  const [signupData, setSignupData] = useState({
+  const [signupData, setSignupData] = useState<SignupFormData>({
     email: "",
     password: "",
     firstName: "",
     lastName: "",
   });
 
+  const [loginErrors, setLoginErrors] = useState<Partial<LoginFormData>>({});
+  const [signupErrors, setSignupErrors] = useState<Partial<SignupFormData>>({});
+
+  const validateAndSanitizeLoginData = (data: LoginFormData): LoginFormData => {
+    const result = loginSchema.safeParse(data);
+    if (!result.success) {
+      const errors: Partial<LoginFormData> = {};
+      result.error.errors.forEach((error) => {
+        const field = error.path[0] as keyof LoginFormData;
+        errors[field] = error.message;
+      });
+      setLoginErrors(errors);
+      throw createSecureError(
+        "Please check your input and try again",
+        `Login validation failed: ${result.error.message}`,
+        'LOGIN_VALIDATION_ERROR'
+      );
+    }
+    
+    return {
+      email: sanitizeInput(result.data.email),
+      password: result.data.password, // Don't sanitize passwords
+    };
+  };
+
+  const validateAndSanitizeSignupData = (data: SignupFormData): SignupFormData => {
+    const result = signupSchema.safeParse(data);
+    if (!result.success) {
+      const errors: Partial<SignupFormData> = {};
+      result.error.errors.forEach((error) => {
+        const field = error.path[0] as keyof SignupFormData;
+        errors[field] = error.message;
+      });
+      setSignupErrors(errors);
+      throw createSecureError(
+        "Please check your input and try again",
+        `Signup validation failed: ${result.error.message}`,
+        'SIGNUP_VALIDATION_ERROR'
+      );
+    }
+    
+    return {
+      email: sanitizeInput(result.data.email),
+      password: result.data.password, // Don't sanitize passwords
+      firstName: sanitizeInput(result.data.firstName),
+      lastName: sanitizeInput(result.data.lastName),
+    };
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setLoginErrors({});
 
     try {
-      const { error } = await signIn(loginData.email, loginData.password);
+      // Rate limiting check
+      const clientId = `login_${loginData.email || 'unknown'}`;
+      if (!authRateLimiter.isAllowed(clientId)) {
+        throw createSecureError(
+          "Too many login attempts. Please wait a moment before trying again.",
+          `Rate limit exceeded for login attempts: ${clientId}`,
+          'RATE_LIMIT_EXCEEDED'
+        );
+      }
+
+      // Validate and sanitize input
+      const sanitizedData = validateAndSanitizeLoginData(loginData);
+
+      const { error } = await signIn(sanitizedData.email, sanitizedData.password);
       
       if (error) {
-        toast({
-          title: "Login Failed",
-          description: error.message,
-          variant: "destructive",
-        });
+        throw createSecureError(
+          "Invalid email or password. Please try again.",
+          `Login failed: ${error.message}`,
+          'LOGIN_FAILED'
+        );
       } else {
         toast({
           title: "Welcome back! 🥩",
@@ -49,11 +115,7 @@ const Auth = () => {
         navigate("/");
       }
     } catch (error) {
-      toast({
-        title: "Login Failed",
-        description: "An unexpected error occurred",
-        variant: "destructive",
-      });
+      handleSecureError(error, toast);
     } finally {
       setIsLoading(false);
     }
@@ -62,21 +124,35 @@ const Auth = () => {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setSignupErrors({});
 
     try {
+      // Rate limiting check
+      const clientId = `signup_${signupData.email || 'unknown'}`;
+      if (!authRateLimiter.isAllowed(clientId)) {
+        throw createSecureError(
+          "Too many signup attempts. Please wait a moment before trying again.",
+          `Rate limit exceeded for signup attempts: ${clientId}`,
+          'RATE_LIMIT_EXCEEDED'
+        );
+      }
+
+      // Validate and sanitize input
+      const sanitizedData = validateAndSanitizeSignupData(signupData);
+
       const { error } = await signUp(
-        signupData.email,
-        signupData.password,
-        signupData.firstName,
-        signupData.lastName
+        sanitizedData.email,
+        sanitizedData.password,
+        sanitizedData.firstName,
+        sanitizedData.lastName
       );
       
       if (error) {
-        toast({
-          title: "Signup Failed",
-          description: error.message,
-          variant: "destructive",
-        });
+        throw createSecureError(
+          "Unable to create account. Please try again.",
+          `Signup failed: ${error.message}`,
+          'SIGNUP_FAILED'
+        );
       } else {
         toast({
           title: "Welcome to CarniTrack! 🥩",
@@ -85,11 +161,7 @@ const Auth = () => {
         navigate("/");
       }
     } catch (error) {
-      toast({
-        title: "Signup Failed",
-        description: "An unexpected error occurred",
-        variant: "destructive",
-      });
+      handleSecureError(error, toast);
     } finally {
       setIsLoading(false);
     }
@@ -151,6 +223,7 @@ const Auth = () => {
                         required
                       />
                     </div>
+                    {loginErrors.email && <p className="text-sm text-red-600">{loginErrors.email}</p>}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="login-password">Password</Label>
@@ -166,6 +239,7 @@ const Auth = () => {
                         required
                       />
                     </div>
+                    {loginErrors.password && <p className="text-sm text-red-600">{loginErrors.password}</p>}
                   </div>
                   <Button 
                     type="submit" 
@@ -193,6 +267,7 @@ const Auth = () => {
                           onChange={(e) => setSignupData({ ...signupData, firstName: e.target.value })}
                         />
                       </div>
+                      {signupErrors.firstName && <p className="text-sm text-red-600">{signupErrors.firstName}</p>}
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="signup-lastName">Last Name</Label>
@@ -203,6 +278,7 @@ const Auth = () => {
                         value={signupData.lastName}
                         onChange={(e) => setSignupData({ ...signupData, lastName: e.target.value })}
                       />
+                      {signupErrors.lastName && <p className="text-sm text-red-600">{signupErrors.lastName}</p>}
                     </div>
                   </div>
                   <div className="space-y-2">
@@ -219,6 +295,7 @@ const Auth = () => {
                         required
                       />
                     </div>
+                    {signupErrors.email && <p className="text-sm text-red-600">{signupErrors.email}</p>}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="signup-password">Password</Label>
@@ -234,6 +311,8 @@ const Auth = () => {
                         required
                       />
                     </div>
+                    {signupErrors.password && <p className="text-sm text-red-600">{signupErrors.password}</p>}
+                    <p className="text-xs text-gray-600">Password must be at least 8 characters with uppercase, lowercase, and number</p>
                   </div>
                   <Button 
                     type="submit" 
