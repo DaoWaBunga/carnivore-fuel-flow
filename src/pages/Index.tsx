@@ -6,17 +6,19 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, TrendingUp, Activity, Heart, Utensils } from "lucide-react";
+import { Plus, TrendingUp, Activity, Heart, Utensils, LogOut } from "lucide-react";
 import { MealLogger } from "@/components/MealLogger";
 import { ProgressDashboard } from "@/components/ProgressDashboard";
 import { HealthTracker } from "@/components/HealthTracker";
 import { NutritionSummary } from "@/components/NutritionSummary";
+import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [quickLog, setQuickLog] = useState({ meal: "", weight: "", steps: "" });
   const { toast } = useToast();
+  const { signOut, user } = useAuth();
 
   const handleQuickLog = () => {
     const loggedItems = [];
@@ -41,6 +43,22 @@ const Index = () => {
     setQuickLog({ meal: "", weight: "", steps: "" });
   };
 
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      toast({
+        title: "Signed out successfully",
+        description: "See you next time! 👋",
+      });
+    } catch (error) {
+      toast({
+        title: "Error signing out",
+        description: "Please try again",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-red-50 via-orange-50 to-amber-50">
       {/* Header */}
@@ -57,60 +75,77 @@ const Index = () => {
               </div>
             </div>
             
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button variant="secondary" className="bg-white/20 hover:bg-white/30 border-0">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Quick Log
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[425px]">
-                <DialogHeader>
-                  <DialogTitle>Quick Log</DialogTitle>
-                </DialogHeader>
-                <div className="grid gap-4 py-4">
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="quickMeal" className="text-right">
-                      Meal
-                    </Label>
-                    <Input
-                      id="quickMeal"
-                      placeholder="e.g., 200g ribeye"
-                      className="col-span-3"
-                      value={quickLog.meal}
-                      onChange={(e) => setQuickLog({ ...quickLog, meal: e.target.value })}
-                    />
-                  </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="quickWeight" className="text-right">
-                      Weight
-                    </Label>
-                    <Input
-                      id="quickWeight"
-                      placeholder="e.g., 175 lbs"
-                      className="col-span-3"
-                      value={quickLog.weight}
-                      onChange={(e) => setQuickLog({ ...quickLog, weight: e.target.value })}
-                    />
-                  </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="quickSteps" className="text-right">
-                      Steps
-                    </Label>
-                    <Input
-                      id="quickSteps"
-                      placeholder="e.g., 8000 steps"
-                      className="col-span-3"
-                      value={quickLog.steps}
-                      onChange={(e) => setQuickLog({ ...quickLog, steps: e.target.value })}
-                    />
-                  </div>
+            <div className="flex items-center space-x-4">
+              {user && (
+                <div className="text-right">
+                  <p className="text-sm text-red-100">Welcome back!</p>
+                  <p className="font-medium">{user.email}</p>
                 </div>
-                <Button onClick={handleQuickLog} className="w-full bg-red-600 hover:bg-red-700">
-                  Log All Items
-                </Button>
-              </DialogContent>
-            </Dialog>
+              )}
+              
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="secondary" className="bg-white/20 hover:bg-white/30 border-0">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Quick Log
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[425px]">
+                  <DialogHeader>
+                    <DialogTitle>Quick Log</DialogTitle>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="quickMeal" className="text-right">
+                        Meal
+                      </Label>
+                      <Input
+                        id="quickMeal"
+                        placeholder="e.g., 200g ribeye"
+                        className="col-span-3"
+                        value={quickLog.meal}
+                        onChange={(e) => setQuickLog({ ...quickLog, meal: e.target.value })}
+                      />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="quickWeight" className="text-right">
+                        Weight
+                      </Label>
+                      <Input
+                        id="quickWeight"
+                        placeholder="e.g., 175 lbs"
+                        className="col-span-3"
+                        value={quickLog.weight}
+                        onChange={(e) => setQuickLog({ ...quickLog, weight: e.target.value })}
+                      />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="quickSteps" className="text-right">
+                        Steps
+                      </Label>
+                      <Input
+                        id="quickSteps"
+                        placeholder="e.g., 8000 steps"
+                        className="col-span-3"
+                        value={quickLog.steps}
+                        onChange={(e) => setQuickLog({ ...quickLog, steps: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                  <Button onClick={handleQuickLog} className="w-full bg-red-600 hover:bg-red-700">
+                    Log All Items
+                  </Button>
+                </DialogContent>
+              </Dialog>
+
+              <Button 
+                onClick={handleSignOut}
+                variant="secondary" 
+                className="bg-white/20 hover:bg-white/30 border-0"
+              >
+                <LogOut className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </div>
       </header>

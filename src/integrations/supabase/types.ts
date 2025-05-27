@@ -9,7 +9,195 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      activity_tracking: {
+        Row: {
+          active_time: number | null
+          calories_burned: number | null
+          created_at: string
+          date: string
+          id: string
+          steps: number | null
+          user_id: string
+        }
+        Insert: {
+          active_time?: number | null
+          calories_burned?: number | null
+          created_at?: string
+          date?: string
+          id?: string
+          steps?: number | null
+          user_id: string
+        }
+        Update: {
+          active_time?: number | null
+          calories_burned?: number | null
+          created_at?: string
+          date?: string
+          id?: string
+          steps?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      goals: {
+        Row: {
+          created_at: string
+          current: number | null
+          id: string
+          target: number
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current?: number | null
+          id?: string
+          target: number
+          type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current?: number | null
+          id?: string
+          target?: number
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      health_metrics: {
+        Row: {
+          created_at: string
+          date: string
+          digestion: number | null
+          energy: number | null
+          id: string
+          mood: number | null
+          notes: string | null
+          sleep: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          date?: string
+          digestion?: number | null
+          energy?: number | null
+          id?: string
+          mood?: number | null
+          notes?: string | null
+          sleep?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          digestion?: number | null
+          energy?: number | null
+          id?: string
+          mood?: number | null
+          notes?: string | null
+          sleep?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      meals: {
+        Row: {
+          calories: number | null
+          carbs: number | null
+          created_at: string
+          date: string
+          fat: number | null
+          food_name: string
+          id: string
+          meal_time: string | null
+          protein: number | null
+          quantity: number | null
+          unit: string | null
+          user_id: string
+        }
+        Insert: {
+          calories?: number | null
+          carbs?: number | null
+          created_at?: string
+          date?: string
+          fat?: number | null
+          food_name: string
+          id?: string
+          meal_time?: string | null
+          protein?: number | null
+          quantity?: number | null
+          unit?: string | null
+          user_id: string
+        }
+        Update: {
+          calories?: number | null
+          carbs?: number | null
+          created_at?: string
+          date?: string
+          fat?: number | null
+          food_name?: string
+          id?: string
+          meal_time?: string | null
+          protein?: number | null
+          quantity?: number | null
+          unit?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string | null
+          first_name: string | null
+          id: string
+          last_name: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          first_name?: string | null
+          id: string
+          last_name?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      weight_entries: {
+        Row: {
+          created_at: string
+          date: string
+          id: string
+          user_id: string
+          weight: number
+        }
+        Insert: {
+          created_at?: string
+          date?: string
+          id?: string
+          user_id: string
+          weight: number
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          id?: string
+          user_id?: string
+          weight?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
