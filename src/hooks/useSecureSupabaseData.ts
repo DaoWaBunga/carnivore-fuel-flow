@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -345,10 +344,28 @@ export const useSecureSupabaseData = () => {
       ensureAuthenticated();
       checkRateLimit('add_meal');
 
-      // Sanitize string inputs
+      // Validate that required fields are present before sanitization
+      if (!meal.food_name || meal.food_name.trim() === '') {
+        throw createSecureError(
+          'Food name is required.',
+          'Attempted to add meal without food_name',
+          'MEAL_VALIDATION_ERROR'
+        );
+      }
+
+      // Sanitize string inputs - ensuring food_name remains non-empty
+      const sanitizedFoodName = sanitizeInput(meal.food_name);
+      if (!sanitizedFoodName || sanitizedFoodName.trim() === '') {
+        throw createSecureError(
+          'Food name contains invalid characters.',
+          'Food name became empty after sanitization',
+          'MEAL_VALIDATION_ERROR'
+        );
+      }
+
       const sanitizedMeal = {
         ...meal,
-        food_name: sanitizeInput(meal.food_name),
+        food_name: sanitizedFoodName,
         unit: meal.unit ? sanitizeInput(meal.unit) : undefined,
         meal_time: meal.meal_time ? sanitizeInput(meal.meal_time) : undefined,
       };
