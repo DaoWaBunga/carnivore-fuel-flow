@@ -171,9 +171,13 @@ export const MealLogger = () => {
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="database" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="database">Food Database</TabsTrigger>
-              <TabsTrigger value="manual">Manual Entry</TabsTrigger>
+            <TabsList className={`grid w-full grid-cols-2 ${isMobile ? 'h-auto' : ''}`}>
+              <TabsTrigger value="database" className={isMobile ? 'text-sm' : ''}>
+                {isMobile ? 'Database' : 'Food Database'}
+              </TabsTrigger>
+              <TabsTrigger value="manual" className={isMobile ? 'text-sm' : ''}>
+                {isMobile ? 'Manual' : 'Manual Entry'}
+              </TabsTrigger>
             </TabsList>
             
             <TabsContent value="database" className="space-y-4">
@@ -187,7 +191,7 @@ export const MealLogger = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'}`}>
                 <div>
                   <Label htmlFor="food">Food Item</Label>
                   <Select value={selectedFood} onValueChange={setSelectedFood}>
@@ -224,6 +228,7 @@ export const MealLogger = () => {
                   onClick={handleAddMeal} 
                   disabled={loading}
                   className="bg-red-600 hover:bg-red-700 flex-1"
+                  size={isMobile ? "lg" : "default"}
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Add Meal
@@ -233,6 +238,7 @@ export const MealLogger = () => {
                   variant="outline" 
                   className="border-red-200 hover:bg-red-50"
                   title={isMobile ? "Take Photo" : "Select Photo"}
+                  size={isMobile ? "lg" : "default"}
                 >
                   <Camera className="h-4 w-4" />
                 </Button>
@@ -241,7 +247,7 @@ export const MealLogger = () => {
 
             <TabsContent value="manual" className="space-y-4">
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'}`}>
                 <div>
                   <Label htmlFor="manualName">Food Name</Label>
                   <Input
@@ -263,7 +269,7 @@ export const MealLogger = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-3'}`}>
                 <div>
                   <Label htmlFor="manualProtein">Protein (g per 100g)</Label>
                   <Input
@@ -301,6 +307,7 @@ export const MealLogger = () => {
                   onClick={handleAddManualMeal} 
                   disabled={loading}
                   className="bg-red-600 hover:bg-red-700 flex-1"
+                  size={isMobile ? "lg" : "default"}
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Add Custom Meal
@@ -310,6 +317,7 @@ export const MealLogger = () => {
                   variant="outline" 
                   className="border-red-200 hover:bg-red-50"
                   title={isMobile ? "Take Photo" : "Select Photo"}
+                  size={isMobile ? "lg" : "default"}
                 >
                   <Camera className="h-4 w-4" />
                 </Button>
@@ -322,20 +330,26 @@ export const MealLogger = () => {
       {/* Today's Summary */}
       <Card className="bg-gradient-to-r from-red-600 to-orange-600 text-white shadow-lg border-0">
         <CardHeader>
-          <CardTitle>Today's Macros</CardTitle>
+          <CardTitle className={isMobile ? 'text-lg' : ''}>Today's Macros</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-3 gap-4 text-center">
             <div>
-              <div className="text-2xl font-bold">{totalMacros.protein.toFixed(1)}g</div>
+              <div className={`font-bold ${isMobile ? 'text-xl' : 'text-2xl'}`}>
+                {totalMacros.protein.toFixed(1)}g
+              </div>
               <div className="text-red-100">Protein</div>
             </div>
             <div>
-              <div className="text-2xl font-bold">{totalMacros.fat.toFixed(1)}g</div>
+              <div className={`font-bold ${isMobile ? 'text-xl' : 'text-2xl'}`}>
+                {totalMacros.fat.toFixed(1)}g
+              </div>
               <div className="text-red-100">Fat</div>
             </div>
             <div>
-              <div className="text-2xl font-bold">{totalMacros.carbs.toFixed(1)}g</div>
+              <div className={`font-bold ${isMobile ? 'text-xl' : 'text-2xl'}`}>
+                {totalMacros.carbs.toFixed(1)}g
+              </div>
               <div className="text-red-100">Carbs</div>
             </div>
           </div>
@@ -346,17 +360,17 @@ export const MealLogger = () => {
       {todaysMeals.length > 0 && (
         <Card className="bg-white/80 backdrop-blur-sm shadow-lg border-0">
           <CardHeader>
-            <CardTitle className="text-red-800">Today's Meals</CardTitle>
+            <CardTitle className={`text-red-800 ${isMobile ? 'text-lg' : ''}`}>Today's Meals</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
               {todaysMeals.map((meal) => (
-                <div key={meal.id} className="flex justify-between items-center p-3 bg-red-50 rounded-lg">
-                  <div>
+                <div key={meal.id} className={`flex justify-between items-center p-3 bg-red-50 rounded-lg ${isMobile ? 'flex-col space-y-2' : ''}`}>
+                  <div className={isMobile ? 'text-center' : ''}>
                     <div className="font-medium">{meal.quantity}g {meal.food_name}</div>
                     <div className="text-sm text-gray-600">{meal.meal_time}</div>
                   </div>
-                  <div className="text-right text-sm">
+                  <div className={`text-sm ${isMobile ? 'flex gap-4 justify-center' : 'text-right'}`}>
                     <div>P: {(meal.protein || 0).toFixed(1)}g</div>
                     <div>F: {(meal.fat || 0).toFixed(1)}g</div>
                     {(meal.carbs || 0) > 0 && <div>C: {(meal.carbs || 0).toFixed(1)}g</div>}
